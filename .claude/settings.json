@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Initial commit: next-ai project setup *)",
+      "Bash(git push *)",
+      "Bash(GIT_SSL_NO_VERIFY=1 git push --set-upstream next-ai main)",
+      "Bash(GIT_SSL_NO_VERIFY=1 git pull next-ai main --allow-unrelated-histories)",
+      "Bash(git commit *)"
+    ]
+  }
+}
