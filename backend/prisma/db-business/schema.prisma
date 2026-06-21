@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ConversationSession {
+  id                 Int        @id @default(autoincrement())
+  conversationId     String     @unique @db.Uuid
+  chatMode           String     @default("OPEN_CHAT")
+  status             Int        @default(1)
+  title              String?
+  selectedDocumentId Int?
+  userId             Int?       @map("user_id")
+  user               AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createTime         DateTime   @default(now()) @db.Timestamp(6)
+  updateTime         DateTime   @updatedAt @db.Timestamp(6)
+
+  exchanges       ConversationExchange[]
+  memorySummaries ConversationMemorySummary[]
+
+  @@map("conversation_session")
+}
+
+model ConversationExchange {
+  id                  Int      @id @default(autoincrement())
+  conversationId      String   @unique @db.Uuid
+  exchangeId          Int
+  question            String   @db.Text
+  answer              String   @db.Text
+  mode                String   @default("OPEN_CHAT")
+  reasoningNotes      Json?
+  sourceSnapshots     Json?
+  followupSuggestions Json?
+  toolTraces          Json?
+  retrievalNotes      Json?
+  finishNote          String?  @db.Text
+  exchangeState       Int      @default(1)
+  firstTokenLatencyMs Int?
+  totalLatencyMs      Int?
+  createTime          DateTime @default(now()) @db.Timestamp(6)
+
+  session ConversationSession @relation(fields: [conversationId], references: [conversationId], onDelete: Cascade)
+
+  @@unique([conversationId, exchangeId])
+  @@map("conversation_exchange")
+}
+
+model ConversationMemorySummary {
+  id                Int      @id @default(autoincrement())
+  conversationId    String   @unique @db.Uuid
+  coveredExchangeId Int
+  summary           String?  @db.Text
+  conversationGoal  String?  @db.Text
+  stableFacts       Json?
+  pendingQuestions  Json?
+  retrievalHints    Json?
+  userPreferences   Json?
+  resolvedPoints    Json?
+  compressionCount  Int?     @default(0)
+  tokenUsed         Int?
+  createTime        DateTime @default(now()) @db.Timestamp(6)
+
+  session ConversationSession @relation(fields: [conversationId], references: [conversationId], onDelete: Cascade)
+
+  @@map("conversation_memory_summary")
+}
+
+model ChatTraceStage {
+  id             Int       @id @default(autoincrement())
+  conversationId String    @db.Uuid
+  exchangeId     Int
+  stageCode      String
+  stageName      String?
+  executionMode  String?
+  durationMs     Int?
+  startTime      DateTime? @db.Timestamp(6)
+  endTime        DateTime? @db.Timestamp(6)
+  traceJson      Json?
+  createTime     DateTime  @default(now()) @db.Timestamp(6)
+
+  @@map("chat_trace_stage")
+}
+
+model ConversationRetrievalResult {
+  id               Int      @id @default(autoincrement())
+  conversationId   String   @db.Uuid
+  exchangeId       Int
+  subQuestionIndex Int      @default(0)
+  subQuestion      String?
+  documentId       Int?
+  sectionPath      String?
+  snippet          String?
+  score            Float?
+  channel          String?
+  metadataJson     Json?
+  createTime       DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("conversation_retrieval_result")
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String   @db.Text
+  role         String   @default("user")
+  createAt     DateTime @default(now()) @db.Timestamp(6)
+  updateAt     DateTime @updatedAt @db.Timestamp(6)
+
+  sessions ConversationSession[]
+
+  @@map("admin_user")
+}
+
+// 文档任务日志，暂时没用到，由db-knowledge中的DocumentTask代替
+model DocumentTaskLog {
+  id         Int      @id @default(autoincrement())
+  taskId     Int
+  stageType  String?
+  eventType  String?
+  logLevel   String?
+  content    String?
+  detailJson Json?
+  createTime DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("document_task_log")
+}
