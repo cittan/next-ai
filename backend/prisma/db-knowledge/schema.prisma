@@ -119,7 +119,7 @@ model DocumentChunk {
     vectorId          String?  @map("vector_id")
     createTime        DateTime @default(now()) @map("create_time") @db.Timestamp(6)
 
-    document    SuperAgentDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    document    SuperAgentDocument   @relation(fields: [documentId], references: [id], onDelete: Cascade)
     parentBlock DocumentParentBlock? @relation(fields: [parentBlockId], references: [id])
 
     @@map("document_chunk")
@@ -161,28 +161,115 @@ model DocumentStrategyPlan {
     confirmUserId    Int?      @map("confirm_user_id")
     confirmTime      DateTime? @map("confirm_time") @db.Timestamp(6)
     createTime       DateTime  @default(now()) @map("create_time") @db.Timestamp(6)
-    editTime         DateTime @updatedAt @map("edit_time") @db.Timestamp(6)
+    editTime         DateTime  @updatedAt @map("edit_time") @db.Timestamp(6)
 
-    document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    document SuperAgentDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
     steps    DocumentStrategyStep[]
 
     @@map("super_agent_document_strategy_plan")
 }
 
 model DocumentStrategyStep {
-    id               Int       @id @default(autoincrement())
-    planId           Int       @map("plan_id")
-    documentId       Int       @map("document_id")
-    stepNo           Int?      @map("step_no")
-    pipelineType     String?   @map("pipeline_type")
-    strategyType     Int       @map("strategy_type")
-    strategyRole     Int?      @map("strategy_role")
-    sourceType       Int?      @map("source_type")
-    executeStatus    Int?      @map("execute_status")
-    recommendReason  String?   @map("recommend_reason") @db.Text
+    id              Int     @id @default(autoincrement())
+    planId          Int     @map("plan_id")
+    documentId      Int     @map("document_id")
+    stepNo          Int?    @map("step_no")
+    pipelineType    String? @map("pipeline_type")
+    strategyType    Int     @map("strategy_type")
+    strategyRole    Int?    @map("strategy_role")
+    sourceType      Int?    @map("source_type")
+    executeStatus   Int?    @map("execute_status")
+    recommendReason String? @map("recommend_reason") @db.Text
 
     plan DocumentStrategyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
     @@map("super_agent_document_strategy_step")
 }
 
+model KnowledgeScope {
+    id              Int      @id @default(autoincrement())
+    scopeCode       String   @unique
+    scopeName       String
+    parentScopeCode String?
+    description     String?  @db.Text
+    aliases         String?       //暂空
+    examples        String?       //暂空
+    sortOrder       Int      @default(0)
+    isActive        Boolean  @default(true)
+    createTime      DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+
+    @@map("knowledge_scope")
+}
+
+model KnowledgeTopic {
+    id                  Int      @id @default(autoincrement())
+    topicCode           String   @unique
+    topicName           String
+    scopeCode           String?
+    description         String?  @db.Text
+    aliases             String?       //暂空
+    examples            String?       //暂空
+    answerShape         String?       //暂空
+    executionPreference String?       //暂空
+    sortOrder           Int      @default(0)
+    isActive            Boolean  @default(true)
+    createTime          DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+
+    @@map("knowledge_topic")
+}
+
+model KnowledgeRouteTrace {
+    id Int @id @default(autoincrement())
+    conversationId String? @db.Uuid
+    exchangeId Int?
+    question String? @db.Text
+    rewriteQuestion String? @db.Text
+    mode String? //冗余
+    topScopesJson Json?
+    topTopicsJson Json?
+    topDocumentsJson Json?
+    selectedDocumentId Int?
+    hitSelectedDocument String?
+    confidence String?
+    routeStatus String?
+    errorMsg String?
+    matchedScopeCode String?
+    matchedDocumentId String?
+    routeMethod String?
+    createTime DateTime @default(now()) @db.Timestamp(6)
+ 
+    @@map("knowledge_route_trace")
+}
+
+model DocumentProfile {
+  id                   Int      @id @default(autoincrement())
+  documentId           Int      @unique 
+  documentSummary      String?  @db.Text
+  documentType         String? 
+  coreTopics           String? 
+  exampleQuestions     String? 
+  graphFriendly        String? 
+  supportsGraphOutline String?
+  supportsItemLookup   String?
+  supportsGraphAssist  String? 
+  profileSource        String?
+  profileStatus        String?  
+  errorMsg             String?
+  createTime           DateTime @default(now()) @db.Timestamp(6)
+  editTime             DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("document_profile")
+}
+
+model KnowledgeTopicDocument {
+    id Int @id @default(autoincrement())
+    topicCode String
+    documentId Int
+    relevanceScore Float?
+    relationSource  String?
+    reason          String?
+    createTime      DateTime @default(now()) @db.Timestamp(6)
+
+    @@unique([topicCode, documentId])
+    @@map("knowledge_topic_document")
+}
