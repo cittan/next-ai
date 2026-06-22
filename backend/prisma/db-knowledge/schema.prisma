@@ -1,0 +1,188 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "../../node_modules/.prisma-knowledge"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model SuperAgentDocument {
+    id                 Int      @id @default(autoincrement())
+    documentName       String   @map("document_name")
+    originalFileName   String?  @map("original_file_name")
+    fileType           Int?     @map("file_type")
+    mimeType           String?  @map("mime_type")
+    fileSize           BigInt?  @map("file_size")
+    storageType        Int?     @map("storage_type")
+    bucketName         String?  @map("bucket_name")
+    objectName         String?  @map("object_name")
+    objectUrl          String?  @map("object_url")
+    parseStatus        Int      @default(1) @map("parse_status")
+    strategyStatus     Int      @default(1) @map("strategy_status")
+    indexStatus        Int      @default(1) @map("index_status")
+    charCount          Int?     @map("char_count")
+    tokenCount         Int?     @map("token_count")
+    structureLevel     Int?     @map("structure_level")
+    contentQulityLevel Int?     @map("content_quality_level")
+    parseTextPath      String?  @map("parse_text_path")
+    parseErrorMsg      String?  @map("parse_error_msg")
+    knowledgeScopeCode String?  @map("knowledge_scope_code")
+    knowledgeScopeName String?  @map("knowledge_scope_name")
+    businessCategory   String?  @map("business_category")
+    documentTags       String?  @map("document_tags")
+    currentPlanId      Int?     @map("current_plan_id")
+    lastParseTaskId    Int?     @map("last_parse_task_id")
+    structureNodeCount Int?     @map("structure_node_count")
+    lastIndexTaskId    Int?     @map("last_index_task_id")
+    status             Int      @default(1)
+    createTime         DateTime @default(now()) @db.Timestamp(6)
+    updateTime         DateTime @updatedAt @db.Timestamp(6)
+
+    chunks         DocumentChunk[]
+    structureNodes DocumentStructureNode[]
+    parentBlocks   DocumentParentBlock[]
+    tasks          DocumentTask[]
+    strategies     DocumentStrategyPlan[]
+
+    @@map("super_agent_document")
+}
+
+model DocumentStructureNode {
+    id                Int      @id @default(autoincrement())
+    documentId        Int      @map("document_id")
+    parseTaskId       Int?     @map("parse_task_id")
+    nodeNo            Int?     @map("node_no")
+    nodeType          String   @map("node_type")
+    parentNodeId      Int?     @map("parent_node_id")
+    prevSiblingNodeId Int?     @map("prev_sibling_node_id")
+    nextSiblingNodeId Int?     @map("next_sibling_node_id")
+    depth             Int?     @map("depth")
+    nodeCode          String?  @map("node_code")
+    title             String?  @db.Text
+    anchorText        String?  @map("anchor_text") @db.Text
+    canonicalPath     String?  @map("canonical_path")
+    sectionPath       String?  @map("section_path")
+    contentText       String?  @map("content_text") @db.Text
+    itemIndex         Int?     @map("item_index")
+    createTime        DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+
+    document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+    @@map("document_structure_node")
+}
+
+model DocumentParentBlock {
+    id                Int      @id @default(autoincrement())
+    documentId        Int      @map("document_id")
+    taskId            Int?     @map("task_id")
+    planId            Int?     @map("plan_id")
+    parentNo          Int?     @map("parent_no")
+    sourceType        Int?     @map("source_type")
+    sectionPath       String?  @map("section_path")
+    structureNodeId   Int?     @map("structure_node_id")
+    structureNodeType String?  @map("structure_node_type")
+    canonicalPath     String?  @map("canonical_path")
+    itemIndex         Int?     @map("item_index")
+    parentText        String?  @map("parent_text") @db.Text
+    charCount         Int?     @map("char_count")
+    tokenCount        Int?     @map("token_count")
+    childCount        Int?     @map("child_count")
+    startChunkNo      Int?     @map("start_chunk_no")
+    endChunkNo        Int?     @map("end_chunk_no")
+    createTime        DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+
+    document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    chunks   DocumentChunk[]
+
+    @@map("document_parent_block")
+}
+
+model DocumentChunk {
+    id                Int      @id @default(autoincrement())
+    documentId        Int      @map("document_id")
+    taskId            Int?     @map("task_id")
+    planId            Int?     @map("plan_id")
+    parentBlockId     Int?     @map("parent_block_id")
+    chunkNo           Int?     @map("chunk_no")
+    sourceType        Int?     @map("source_type")
+    sectionPath       Int?     @map("section_path")
+    structureNodeId   Int?     @map("structure_node_id")
+    structureNodeType String?  @map("structure_node_type")
+    canonicalPath     String?  @map("canonical_path")
+    itemIndex         Int?     @map("item_index")
+    chunkText         String?  @map("chunk_text") @db.Text
+    charCount         Int?     @map("char_count")
+    tokenCount        Int?     @map("token_count")
+    vectorStatus      Int?     @default(1) @map("vector_status")
+    vectorStoreType   Int?     @map("vector_store_type")
+    vectorId          String?  @map("vector_id")
+    createTime        DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+
+    document    SuperAgentDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    parentBlock DocumentParentBlock? @relation(fields: [parentBlockId], references: [id])
+
+    @@map("document_chunk")
+}
+
+model DocumentTask {
+    id               Int       @id @default(autoincrement())
+    documentId       Int       @map("document_id")
+    planId           Int?      @map("plan_id")
+    taskType         Int       @map("task_type")
+    taskStatus       Int       @default(0) @map("task_status")
+    currentStage     Int?      @map("current_stage")
+    triggerSource    Int?      @map("trigger_source")
+    strategySnapShot String?   @map("strategy_snapshot") @db.Text
+    retryCount       Int?      @map("retry_count")
+    startTime        DateTime? @map("start_time") @db.Timestamp(6)
+    finishTime       DateTime? @map("finish_time") @db.Timestamp(6)
+    costMillis       Int?      @map("cost_millis")
+    errorCode        String?   @map("error_code")
+    errorMsg         String?   @map("error_msg") @db.Text
+    extJson          String?   @map("ext_json") @db.Text
+    createTime       DateTime  @default(now()) @map("create_time") @db.Timestamp(6)
+
+    document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+    @@map("super_agent_document_task")
+}
+
+model DocumentStrategyPlan {
+    id               Int       @id @default(autoincrement())
+    documentId       Int       @map("document_id")
+    planVersion      Int?      @map("plan_version")
+    planSource       Int?      @map("plan_source")
+    planStatus       Int?      @map("plan_status")
+    strategyCount    Int?      @map("strategy_count")
+    strategySnapShot String?   @map("strategy_snapshot") @db.Text
+    recommendReason  String?   @map("recommend_reason") @db.Text
+    adjustNote       String?   @map("adjust_note") @db.Text
+    confirmUserId    Int?      @map("confirm_user_id")
+    confirmTime      DateTime? @map("confirm_time") @db.Timestamp(6)
+    createTime       DateTime  @default(now()) @map("create_time") @db.Timestamp(6)
+    editTime         DateTime @updatedAt @map("edit_time") @db.Timestamp(6)
+
+    document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    steps    DocumentStrategyStep[]
+
+    @@map("super_agent_document_strategy_plan")
+}
+
+model DocumentStrategyStep {
+    id               Int       @id @default(autoincrement())
+    planId           Int       @map("plan_id")
+    documentId       Int       @map("document_id")
+    stepNo           Int?      @map("step_no")
+    pipelineType     String?   @map("pipeline_type")
+    strategyType     Int       @map("strategy_type")
+    strategyRole     Int?      @map("strategy_role")
+    sourceType       Int?      @map("source_type")
+    executeStatus    Int?      @map("execute_status")
+    recommendReason  String?   @map("recommend_reason") @db.Text
+
+    plan DocumentStrategyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+    @@map("super_agent_document_strategy_step")
+}
+
