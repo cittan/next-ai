@@ -8,9 +8,9 @@ config();
 const { DATABASE_URL } = process.env;
  
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: "prisma/db-knowledge/schema.prisma",
   migrations: {
-    path: "prisma/migrations",
+    path: "prisma/db-knowledge/migrations",
   },
   datasource: {
     url: DATABASE_URL,
