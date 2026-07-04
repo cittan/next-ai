@@ -1,19 +1,17 @@
 {
-  "name": "next-ai-ts",
+  "name": "next-ai",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
-    "dev:backend": "pnpm --filter next-ai-backend dev",
-    "dev:frontend": "pnpm --filter next-ai-frontend dev",
-    "build": "pnpm run build:backend && pnpm run build:frontend",
-    "build:backend": "pnpm --filter next-ai-backend build",
-    "build:frontend": "pnpm --filter next-ai-frontend build"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "start": "turbo start"
   },
   "devDependencies": {
     "@prisma/client": "^7.8.0",
     "@types/pg": "^8.20.0",
-    "concurrently": "^8.2.2",
     "dotenv": "^17.4.2",
-    "prisma": "^7.8.0"
+    "prisma": "^7.8.0",
+    "turbo": "^2"
   }
 }

@@ -24,7 +24,7 @@ model SuperAgentDocument {
     charCount          Int?     @map("char_count")
     tokenCount         Int?     @map("token_count")
     structureLevel     Int?     @map("structure_level")
-    contentQulityLevel Int?     @map("content_quality_level")
+    contentQualityLevel Int?     @map("content_quality_level")
     parseTextPath      String?  @map("parse_text_path")
     parseErrorMsg      String?  @map("parse_error_msg")
     knowledgeScopeCode String?  @map("knowledge_scope_code")
@@ -36,8 +36,8 @@ model SuperAgentDocument {
     structureNodeCount Int?     @map("structure_node_count")
     lastIndexTaskId    Int?     @map("last_index_task_id")
     status             Int      @default(1)
-    createTime         DateTime @default(now()) @db.Timestamp(6)
-    updateTime         DateTime @updatedAt @db.Timestamp(6)
+    createTime         DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+    updateTime         DateTime @updatedAt @map("edit_time") @db.Timestamp(6)
 
     chunks         DocumentChunk[]
     structureNodes DocumentStructureNode[]
@@ -122,7 +122,7 @@ model DocumentChunk {
     document    SuperAgentDocument   @relation(fields: [documentId], references: [id], onDelete: Cascade)
     parentBlock DocumentParentBlock? @relation(fields: [parentBlockId], references: [id])
 
-    @@map("document_chunk")
+    @@map("document_chunk_business")
 }
 
 model DocumentTask {
@@ -175,7 +175,7 @@ model DocumentStrategyStep {
     documentId      Int     @map("document_id")
     stepNo          Int?    @map("step_no")
     pipelineType    String? @map("pipeline_type")
-    strategyType    Int     @map("strategy_type")
+    strategyType    Int?    @map("strategy_type")
     strategyRole    Int?    @map("strategy_role")
     sourceType      Int?    @map("source_type")
     executeStatus   Int?    @map("execute_status")
@@ -233,8 +233,9 @@ model KnowledgeRouteTrace {
     confidence String?
     routeStatus String?
     errorMsg String?
-    matchedScopeCode String?
-    matchedDocumentId String?
+    matchedScopeCode    String?
+    matchedTopicCode    String?
+    matchedDocumentId   Int?
     routeMethod String?
     createTime DateTime @default(now()) @db.Timestamp(6)
  

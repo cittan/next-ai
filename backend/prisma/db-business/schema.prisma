@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output = "../../node_modules/.prisma-business"
+  output   = "../../node_modules/.prisma-business"
 }
 
 datasource db {
@@ -17,7 +17,7 @@ model ConversationSession {
   userId             Int?       @map("user_id")
   user               AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
   createTime         DateTime   @default(now()) @db.Timestamp(6)
-  updateTime         DateTime   @updatedAt @db.Timestamp(6)
+  editTime           DateTime   @updatedAt @db.Timestamp(6)
 
   exchanges       ConversationExchange[]
   memorySummaries ConversationMemorySummary[]
@@ -27,10 +27,10 @@ model ConversationSession {
 
 model ConversationExchange {
   id                  Int      @id @default(autoincrement())
-  conversationId      String   @unique @db.Uuid
+  conversationId      String   @db.Uuid
   exchangeId          Int
   question            String   @db.Text
-  answer              String   @db.Text
+  answer              String?  @db.Text
   mode                String   @default("OPEN_CHAT")
   reasoningNotes      Json?
   sourceSnapshots     Json?
@@ -51,7 +51,7 @@ model ConversationExchange {
 
 model ConversationMemorySummary {
   id                Int      @id @default(autoincrement())
-  conversationId    String   @unique @db.Uuid
+  conversationId    String   @db.Uuid
   coveredExchangeId Int
   summary           String?  @db.Text
   conversationGoal  String?  @db.Text
@@ -60,7 +60,7 @@ model ConversationMemorySummary {
   retrievalHints    Json?
   userPreferences   Json?
   resolvedPoints    Json?
-  compressionCount  Int?     @default(0)
+  compressionCount  Int      @default(0)
   tokenUsed         Int?
   createTime        DateTime @default(now()) @db.Timestamp(6)
 
@@ -105,10 +105,10 @@ model ConversationRetrievalResult {
 model AdminUser {
   id           Int      @id @default(autoincrement())
   username     String   @unique
-  passwordHash String   @db.Text
+  passwordHash String   @map("password_hash") @db.Text
   role         String   @default("user")
-  createAt     DateTime @default(now()) @db.Timestamp(6)
-  updateAt     DateTime @updatedAt @db.Timestamp(6)
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @updatedAt @db.Timestamp(6)
 
   sessions ConversationSession[]
 

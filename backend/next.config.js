@@ -1,17 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: [
-      'kafkajs',
-      '@elastic/elasticsearch',
-      'neo4j-driver',
-      'pg',
-      'ioredis',
-      'minio',
-      'pdf-parse',
-      'mammoth',
-    ],
-  },
+  serverExternalPackages: [
+    'kafkajs',
+    '@elastic/elasticsearch',
+    'neo4j-driver',
+    'pg',
+    'ioredis',
+    'minio',
+    'pdf-parse',
+    'mammoth',
+  ],
+  compress: true,
+  poweredByHeader: false,
   async headers() {
     return [
       {
