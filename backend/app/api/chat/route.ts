@@ -11,10 +11,10 @@ export async function POST(req: NextRequest) {
     }
     try {
         const result = await chatCompletion([
-            {role: "system", content: "你是一个专业的助手"},
-            {role: "user", content: question},
-        ],{});
-        return NextResponse.json({content: result.content, usage: result.usage});
+            { role: "system", content: "你是一个专业的助手" },
+            { role: "user", content: question },
+        ], {});
+        return NextResponse.json({ content: result.content, usage: result.usage });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "服务器错误" }, { status: 500 });
     }

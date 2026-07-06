@@ -11,6 +11,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveM
 let _client: OpenAI | null = null;
 export function getAiClient(): OpenAI {
     if (!_client) {
+        //string的startsWith返回boolean值
         const isHttps = config.ai.baseUrl.startsWith("https");
         _client = new OpenAI({
             apiKey: config.ai.apiKey,
