@@ -8,22 +8,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: "问题不能为空" }, { status: 400 });
     }
     const messages: ChatMessage[] = [
-        { role: "system", content: "你是一个专业的助手" },
+        { role: "system", content: "你是typescript专业助手" },
         { role: "user", content: question },
     ]
 
-    // 编码器，用于将字符串转换为字节流，不能用于I/O
     const encoder = new TextEncoder();
-    //生产者/消费者模式
-    //启动readablestream，立刻使用controller向ReadableStream的缓冲队列推encode编码的数据，最后NextResponse的接受队列中的内容
     const stream = new ReadableStream({
-        //ReadableStream被new时自动执行start方法，controller是控制器
         async start(controller) {
             try {
-                for await (const chunk of streamChatCompletion(messages)) {
+                for await (const chunk of streamChatCompletion(messages, { model: 'qwen-turbo', maxTokens: 256, temperature: 0.3 })) {
                     if (chunk.content) {
-                        //推数据，内部是队列，en queue
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", content: chunk.content })}\n\n`));
+                        // 延迟 30ms 确保每个 token 作为独立网络包发送，浏览器端 reader.read() 才能逐次返回
+                        await new Promise(r => setTimeout(r, 30));
                     }
                     if (chunk.finishReason === 'stop') {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`))
