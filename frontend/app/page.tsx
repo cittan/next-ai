@@ -4,11 +4,16 @@ import { useState } from 'react';
 import { api } from '@/lib/client';
 
 export default function Home() {
+  //问题
   const [q, setQ] = useState('');
+  //回答
   const [a, setA] = useState('');
+  //加载中
   const [loading, setLoading] = useState(false);
+  //错误
   const [error, setError] = useState('');
 
+  //发送请求的方法，请求后端的/chat接口
   const send = async () => {
     if (!q.trim() || loading) {
       return;
@@ -26,6 +31,7 @@ export default function Home() {
     }
   }
 
+  //渲染页面
   return (
     <main className='min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4'>
       <div className='w-full max-w-2xl'>
