@@ -17,8 +17,8 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const r = await api.post<{ answer: string }>('/api/chat', { question: q });
-      setA(r.answer);
+      const r = await api.post<{ content: string }>('/api/chat', { question: q });
+      setA(r.content);
     } catch (e: any) {
       setError(e.message);
     } finally {
