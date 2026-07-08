@@ -180,29 +180,32 @@ export default function SessionList({ sessions, activeConversationId, onSelectSe
 
     //UI渲染：头部、列表、空状态
     return (
-        <aside>
-            <div>
-                <h2>历史会话</h2>
-                <button>
+        <aside className='h-full glass border-white/10 flex flex-col'>
+            <div className='px-4 py-3 border-primary-50/70 backdrop-blur-sm text-primary-600 rounded-xl hover:bg-primary-100/70 transition-all duration-200 font-medium'>
+                <h2 className='text-sm font-semibold text-slate-700'>历史会话</h2>
+                <button onClick={onNewSession} 
+                className='text-xs px-2.5 py-1.5 bg-primary-50/70 backdrop-blur-sm text-primary-600 rounded-xl hover:bg-primary-100/70 transition-all duration-200 font-medium '>
                     + 新建会话
                 </button>
             </div>
-            <div>
+            <div className='flex-1 overflow-y-auto scroll-smooth'>
                 {loading ? (
-                    <div>
+                    <div className='space-y-1 p-2'>
                         {[1,2,3].map((i) => (
-                            <div key={i} />
+                            <div key={i} className='mx-2 my-1 h-16 rounded-xl shimmer-bg' />
                         ))}
                     </div>
                 ) : sessions.length === 0 ? (
-                    <div>
-                        <svg>
-                            <path />
+                    <div className='text-center py-12'>
+                        <svg className='h-8 w-8 text-slate-300/50 mx-auto mb-3' fill='none' stroke='currentColor' viewBox='0 24 24 24'>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
+                             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
-                        <p>暂无会话</p>
-                        <p>点击新建会话开始聊天</p>
+                        <p className="text-sm text-slate-400">暂无会话</p>
+                        <p className="text-xs text-slate-300 mt-1">点击新建会话开始聊天</p>
                     </div>
                 ) : (
+                    //会话列表
                     <ul>
                         {
                             sessions.map((s) => {
