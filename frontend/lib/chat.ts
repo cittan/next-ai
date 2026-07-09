@@ -29,6 +29,14 @@ export interface SessionListResponse {
     sessions: ChatSession[];
 }
 
+export interface ExchangeRecord {
+    exchangeId: number;
+    question: string;
+    answer: string;
+    exchangeStatus: number;
+    createTime: string;
+}
+
 
 export const chatApi = {
     async listSessions(params?: {
@@ -65,6 +73,14 @@ export const chatApi = {
     //下方暂时为测试用,后续需要根据需求调整
     async getSessionSummary(conversationId: string): Promise<MemorySummary> {
         return api.get<MemorySummary>(`/api/chat/session/summary?conversationId=${conversationId}`);
+    },
+
+    async getExchanges(conversationId: string, limit?: number,): Promise<{ conversationId: string; exchanges: ExchangeRecord[] }> {
+        const params = new URLSearchParams({ conversationId });
+        if(limit) {
+            params.set('limit', String(limit));
+        }
+        return api.get(`/api/chat/session/exchanges?${params.toString()}`)
     }
 
 }
