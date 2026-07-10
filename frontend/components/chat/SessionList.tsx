@@ -243,7 +243,6 @@ export default function SessionList({ sessions, activeConversationId, onSelectSe
                                                     {isActive && (
                                                         <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0 animate-pulse" />
                                                     )}
-                                                    //占据剩余可用空间 会话标题，超出部分截断显示省略号
                                                     <p className={`text-sm truncate flex-1 ${isActive ? 'text-primary-800 font-medium' : 'text-slate-700'}`}>{s.title || s.conversationId.slice(0, 8)}</p>
                                                 </div>
                                                 <p className="text-xs text-slate-400 mt-1 ml-3.5">{s.exchangeCount ?? 0} 轮 · {formatTime(s.editTime)}</p>

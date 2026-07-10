@@ -32,6 +32,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             try {
                 for await (const chunk of streamChatCompletion(messages, { model: 'qwen-turbo', maxTokens: 256, temperature: 0.3 })) {
                     if (chunk.content) {
+                        fullAnswer += chunk.content;
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "token", content: chunk.content })}\n\n`));
                         // 延迟 30ms 确保每个 token 作为独立网络包发送，浏览器端 reader.read() 才能逐次返回
                         await new Promise(r => setTimeout(r, 30));

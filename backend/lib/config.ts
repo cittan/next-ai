@@ -40,6 +40,12 @@ export interface AppConfig {
         password: string;
         timeout: number;
     };
+    admin: {
+        username: string;
+        password: string;
+        tokenSecret: string;
+        tokenExpireMinutes: number;
+    }
 }
 
 //加载配置
@@ -66,6 +72,12 @@ function loadConfig(): AppConfig {
             db: envNum('REDIS_DB', 0),
             password: env('REDIS_PASSWORD', ''),
             timeout: envNum('REDIS_TIMEOUT', 3000),
+        },
+        admin: {
+            username: env('ADMIN_USERNAME', 'admin'),
+            password: env('ADMIN_PASSWORD', 'admin123456'),
+            tokenSecret: env('ADMIN_TOKEN_SECRET', 'xK9pQ2vF8mN6sR4yT7cB3hH1eW5zL0dG'),
+            tokenExpireMinutes: envNum('ADMIN_TOKEN_EXPIRE_MINUTES', 720),
         },
 
     }

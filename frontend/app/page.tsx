@@ -45,11 +45,11 @@ export default function Home() {
     setError('');
     try {
       const r = await chatApi.getExchanges(id);
-      let t = '';
-      for(const ex of r.exchanges) {
-        t += `\n**Q: ${ex.question}**\n**A: ${ex.answer}**\n\n${ex.answer}\n\n---\n`;
-      }
-      setAnswer(t.trim())
+      const msgs = r.exchanges.flatMap((ex: any) => [
+        { role: 'user' as const, content: ex.question },
+        { role: 'assistant' as const, content: ex.answer || '' },
+      ]);
+      setMessages(msgs);
     } catch (e: any) {
       console.error(e);
     }
@@ -67,7 +67,7 @@ export default function Home() {
 
     try {
       // 调用流式聊天 API
-      const response = await fetch('/api/chat/stream', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -166,8 +166,15 @@ export default function Home() {
           ) : (
             messages.map((msg,i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-2xl px-4 py-3 rounded-2xl 
-                  ${msg.role === 'user' ? 'bg-primary-500 text-white' : 'bg-white/60 backdrop-blur-sm border border-white/20 text-slate-800'}`}>
+                <div 
+                  className='max-w-2xl px-4 py-3 rounded-2xl'
+                  style={{
+                    backgroundColor: msg.role === 'user' ? '#6366f1' : 'rgba(255,255,255,0.6)',
+                    color: msg.role === 'user' ? '#ffffff' : '#1e293b',
+                    backdropFilter: msg.role === 'assistant' ? 'blur(4px)' : 'none',
+                    border: msg.role === 'assistant' ? '1px solid rgba(255,255,255,0.2)' : 'none'
+                  }}
+                >
                   <p className='whitespace-pre-wrap'>{msg.content}</p>
                 </div>
               </div>
