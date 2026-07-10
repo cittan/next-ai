@@ -88,7 +88,7 @@ export class ConversationManager {
     }
 
     //设置会话状态空闲
-    async setSessionStatus(p: { conversationId: string }) {
+    async setSessionIdle(p: { conversationId: string }) {
         await this.prisma.conversationSession.update({
             where: { conversationId: p.conversationId },
             data: { status: ChatSessionStatus.IDLE }
@@ -122,9 +122,9 @@ export class ConversationManager {
     }
 
     //获取最新ExchangeId，用于创建新的ExchangeId
-    async getLatestExchangeId(p: {conversationId: string}){
+    async getLatestExchangeId(conversationId: string){
         const row = await this.prisma.conversationExchange.aggregate({
-            where: {conversationId: p.conversationId},
+            where: {conversationId},
             _max: {exchangeId: true}
         })
         return row._max?.exchangeId ?? 0;

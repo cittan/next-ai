@@ -11,6 +11,8 @@ export default function Home() {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [answer, setAnswer] = useState('');
+  const [error, setError] = useState('');
 
   //分页查询会话，useCallback作用是在依赖项没有变化时，保持函数的引用不变，当前函数是空数组，所以不会在每次渲染时都重新创建函数
   const loadSessions = useCallback(async () => {
@@ -39,19 +41,15 @@ export default function Home() {
 
   const handleSelectSession = async (id: string) => {
     setActiveConversationId(id);
-    if (!id) {
-      setMessages([]);
-      return;
-    }
+    setAnswer('');
+    setError('');
     try {
-      const res = await chatApi.getExchanges(id);
-      setMessages(
-        //flatMap把数组展开成一维
-        res.exchanges.flatMap((e: any) => [
-          { role: 'user' as const, content: e.question },
-          { role: 'assistant' as const, content: e.answer },
-        ])
-      );
+      const r = await chatApi.getExchanges(id);
+      let t = '';
+      for(const ex of r.exchanges) {
+        t += `\n**Q: ${ex.question}**\n**A: ${ex.answer}**\n\n${ex.answer}\n\n---\n`;
+      }
+      setAnswer(t.trim())
     } catch (e: any) {
       console.error(e);
     }

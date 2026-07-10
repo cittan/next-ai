@@ -10,7 +10,7 @@ export enum ChatQueryMode {
     CURRENT_DOCUMENT = 'CURRENT_DOCUMENT' //指定文档查询
 }
 
-export enum ExchangeStatus {
+export enum ExchangeState {
     STARTED = 0, //已开始
     IN_PROGRESS = 1, //进行中
     COMPLETED = 2, //已完成

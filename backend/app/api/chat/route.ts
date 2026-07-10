@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { streamChatCompletion, ChatMessage } from '@/lib/ai/client'
-
+import { ChatRequestDto } from '@/lib/models/chat';
+import { conversationManager } from '@/lib/service/chat/ConversationManager';
+import { ExchangeState } from '@/lib/models/enum';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-    const { question } = await req.json() as { question?: string };
-    if (!question?.trim()) {
+    const body = await req.json() as ChatRequestDto;
+    if (!body.question?.trim()) {
         return NextResponse.json({ error: "问题不能为空" }, { status: 400 });
     }
     const messages: ChatMessage[] = [
         { role: "system", content: "你是typescript专业助手" },
-        { role: "user", content: question },
+        { role: "user", content: body.question },
     ]
+
+    const conversationId = (body.conversationId as string) || crypto.randomUUID();
+    //获得会话信息
+    let session = await conversationManager.getSession(conversationId);
+    if(!session) {
+        await conversationManager.createSession({ conversationId, chatMode: 'OPEN_CHAT' });
+    }
+    const exchangeId = await conversationManager.getLatestExchangeId(conversationId) + 1; 
+    await conversationManager.createExchange({ conversationId, exchangeId, question: body.question});
+    const startTime = Date.now();
+    let fullAnswer = '';
+    let firstTokenTime: number | null = null
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -24,10 +38,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                     }
                     if (chunk.finishReason === 'stop') {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`))
+                        await conversationManager.completeExchange({ conversationId, exchangeId, answer: fullAnswer,exchangeState: ExchangeState.COMPLETED, firstTokenLatencyMs: firstTokenTime ? firstTokenTime - startTime : undefined, totalLatencyMs: Date.now() - startTime });
+                        if(exchangeId === 1){
+                            await conversationManager.renameSession({ conversationId, title: body.question.slice(0,50) });
+                        }
+                        await conversationManager.setSessionIdle({ conversationId });
                     }
                 }
             } catch (error: any){
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`))
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`));
+                await conversationManager.completeExchange({ conversationId, exchangeId, answer: fullAnswer,exchangeState: ExchangeState.FAILED, firstTokenLatencyMs: firstTokenTime ? firstTokenTime - startTime : undefined, totalLatencyMs: Date.now() - startTime }).catch(() => {});
+                await conversationManager.setSessionIdle({ conversationId }).catch(() => {});
             } finally {
                 //关闭流
                 controller.close();
