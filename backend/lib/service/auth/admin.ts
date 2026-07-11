@@ -41,11 +41,32 @@ export async function adminLogin(username: string, password: string) {
         role: user.role,
     }
     return {
-        token: signToken(payload), 
+        token: signToken(payload),
         user: {
             userId: user.id,
             username: user.username,
             role: user.role,
         }
     }
+}
+
+export async function adminRegister(username: string, password: string) {
+    const prisma = getBusinessPrisma();
+    const user = await prisma.adminUser.findUnique({
+        where: {
+            username,
+        }
+    })
+    if (user) {
+        return null;
+    }
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const result = await prisma.adminUser.create({
+        data: {
+            username,
+            passwordHash,
+            role: 'admin'
+        }
+    })
+    return result;
 }
