@@ -1,34 +1,39 @@
 'use client'
 
 import { authApi } from "@/lib/auth";
-import { useRouter } from "next/router";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isReg,setIsReg] = useState(false);
-  const [u,setU] = useState('');
-  const [p,setP] = useState('');
-  const [error,setError] = useState('');
-  const [loading,setLoading] = useState(false);
+  const [isReg, setIsReg] = useState(false);
+  const [u, setU] = useState('');
+  const [p, setP] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (authApi.isLoggedIn()) router.replace('/chat');
+  }, [router]);
 
   const submit = async () => {
-    if(!u || !p) {
+    if (!u || !p) {
       setError('用户名或密码不能为空');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      if(isReg) {
-        await authApi.register(u,p);
-      }else{
-        await authApi.login(u,p);
-        router.push('/');
+      if (isReg) {
+        await authApi.register(u, p);
+        router.push('/chat');
+      } else {
+        await authApi.login(u, p);
+        router.push('/chat');
       }
-    } catch(e: any) {
+    } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
@@ -48,7 +53,7 @@ export default function LoginPage() {
           </button>
         </div>
         <div className='mt-4 text-center'>
-          <button onClick={() => {setIsReg(!isReg);setError('')}} className='text-sm text-blue-500 hover:text-blue-600'>{isReg ? '已有账号？登录' : '没有账号？注册'}</button>
+          <button onClick={() => { setIsReg(!isReg); setError('') }} className='text-sm text-blue-500 hover:text-blue-600'>{isReg ? '已有账号？登录' : '没有账号？注册'}</button>
         </div>
       </div>
     </main>

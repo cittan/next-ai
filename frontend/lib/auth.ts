@@ -24,7 +24,7 @@ export function logout() {
     localStorage.removeItem('username');
 }
 
-export async function verifyToken() {
+export async function verifyAuth() {
     if (!state.token) {
         return false;
     }
@@ -40,13 +40,16 @@ export async function verifyToken() {
 
 export const authApi = {
     async login(username: string, password: string) {
-        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/login', { username, password });
-        saveAuth(r.token, r.user.username);
+        const r = await api.post<{ token: string, username: string, role: string }>('/api/admin/auth/login', { username, password });
+        saveAuth(r.token, r.username);
         return r;
     },
     async register(username: string, password: string) {
-        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/register', { username, password });
-        saveAuth(r.token, r.user.username);
+        const r = await api.post<{ token: string, username: string, role: string }>('/api/admin/auth/register', { username, password });
+        saveAuth(r.token, r.username);
         return r;
+    },
+    isLoggedIn() {
+        return !!localStorage.getItem('token');
     }
 }
