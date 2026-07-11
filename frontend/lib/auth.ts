@@ -25,11 +25,11 @@ export function logout() {
 }
 
 export async function verifyToken() {
-    if(!state.token) {
+    if (!state.token) {
         return false;
     }
     try {
-        const u = await api.get<{role: string}>('/api/admin/auth/me');
+        const u = await api.get<{ role: string }>('/api/admin/auth/me', { headers: { Authorization: `Bearer ${state.token}` } });
         state.isAdmin = u.role === 'admin';
         return true;
     } catch {
@@ -40,12 +40,12 @@ export async function verifyToken() {
 
 export const authApi = {
     async login(username: string, password: string) {
-        const r = await api.post<{token: string, user: {username: string, role: string}}>('/api/admin/auth/login', {username, password});
+        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/login', { username, password });
         saveAuth(r.token, r.user.username);
         return r;
     },
     async register(username: string, password: string) {
-        const r = await api.post<{token: string, user: {username: string, role: string}}>('/api/admin/auth/register', {username, password});
+        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/register', { username, password });
         saveAuth(r.token, r.user.username);
         return r;
     }

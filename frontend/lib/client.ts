@@ -25,7 +25,7 @@ async function request<T>(
 
 //做参数转发，其中是两个key，值为箭头函数，不是类型定义
 export const api = {
-    get: <T>(url: string, header: Record<string, string> = {}) => request<T>(url, { method: "GET", ...header }),
-    post: <T>(url: string, body?: any, header: Record<string, string> = {}) => request<T>(url, { method: "POST", body: body, ...header }),
+    get: <T>(url: string, config: { headers?: Record<string, string> } = {}) => request<T>(url, { method: "GET", ...config }),
+    post: <T>(url: string, body?: any, config: { headers?: Record<string, string> } = {}) => request<T>(url, { method: "POST", body: body, ...config }),
 }
 
