@@ -11,7 +11,7 @@ export async function assembleContext(conversationId: string, ms: MemoryStore) {
         recentTranscript: transcript,
         answerRecentTranscript: answerTranscript,
         compressionApplied: !!summary,
-        coveredExchangeId: summary?.coveredExchangeId || '',
+        coveredExchangeId: summary?.coveredExchangeId || 0,
         compressionCount: summary?.compressionCount || 0,
         summaryPayload: summary,
     }
