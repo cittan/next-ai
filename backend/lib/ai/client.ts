@@ -33,10 +33,10 @@ export interface ChatMessage {
 //获取聊天输出完成的内容
 export async function chatCompletion(
     messages: ChatMessage[],
-    options: { model?: string, temperature?: number, maxTokens?: number }
+    options: { model?: string, temperature?: number, maxTokens?: number } = {}
 ): Promise<{
     content: string;
-    usage: { promptTokens: number; completionTokens: number; totelTokens: number }
+    usage: { promptTokens: number; completionTokens: number; totalTokens: number }
 }> {
     const client = getAiClient();
     const response = await client.chat.completions.create(
@@ -53,7 +53,7 @@ export async function chatCompletion(
         usage: {
             promptTokens: response.usage?.prompt_tokens || 0,
             completionTokens: response.usage?.completion_tokens || 0,
-            totelTokens: response.usage?.total_tokens || 0,
+            totalTokens: response.usage?.total_tokens || 0,
         },
     };
 }
