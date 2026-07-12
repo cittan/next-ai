@@ -40,12 +40,32 @@ export interface AppConfig {
         password: string;
         timeout: number;
     };
+    elasticsearch: {
+        uris: string[];
+        username: string;
+        password: string;
+        indexName: string;
+        navigationIndexName: string;
+        routeIndexName: string;
+        analyzer: string;
+        searchAnalyzer: string;
+        connectTimeout: number;
+        socketTimeout: number;
+    };
+    minio: {
+        endpoint: string;
+        accessKey: string;
+        secretKey: string;
+        bucketName: string;
+        objectPrefix: string;
+        parsedTextPrefix: string;
+    };
     admin: {
         username: string;
         password: string;
         tokenSecret: string;
         tokenExpireMinutes: number;
-    }
+    };
 }
 
 //加载配置
@@ -72,6 +92,26 @@ function loadConfig(): AppConfig {
             db: envNum('REDIS_DB', 0),
             password: env('REDIS_PASSWORD', ''),
             timeout: envNum('REDIS_TIMEOUT', 3000),
+        },
+        elasticsearch: {
+            uris: env('ELASTICSEARCH_URIS', '192.168.233.200:9200').split(','),
+            username: env('ELASTICSEARCH_USERNAME', 'elastic'),
+            password: env('ELASTICSEARCH_PASSWORD', '123456'),
+            indexName: env('ELASTICSEARCH_INDEX_NAME', 'super_agent_business_chat'),
+            navigationIndexName: env('ELASTICSEARCH_NAVIGATION_INDEX_NAME', 'super_agent_business_chat_navigation'),
+            routeIndexName: env('ELASTICSEARCH_ROUTE_INDEX_NAME', 'super_agent_business_chat_route'),
+            analyzer: env('ELASTICSEARCH_ANALYZER', 'ik_max_word'),
+            searchAnalyzer: env('ELASTICSEARCH_SEARCH_ANALYZER', 'ik_max_word'),
+            connectTimeout: envNum('ELASTICSEARCH_CONNECT_TIMEOUT', 3000),
+            socketTimeout: envNum('ELASTICSEARCH_SOCKET_TIMEOUT', 3000),
+        },
+        minio: {
+            endpoint: env('MINIO_ENDPOINT', '192.168.233.200:9000'),
+            accessKey: env('MINIO_ACCESS_KEY', 'minioadmin'),
+            secretKey: env('MINIO_SECRET_KEY', 'minioadmin'),
+            bucketName: env('MINIO_BUCKET_NAME', 'super_agent_business_chat'),
+            objectPrefix: env('MINIO_OBJECT_PREFIX', 'super_agent_business_chat/'),
+            parsedTextPrefix: env('MINIO_PARSED_TEXT_PREFIX', 'super_agent_business_chat/parsed_text/'),
         },
         admin: {
             username: env('ADMIN_USERNAME', 'admin'),
