@@ -49,7 +49,7 @@ export class MemoryStore {
         })
     }
 
-    async getRecentExchanges(conversationId: string, limit: 10){
+    async getRecentExchanges(conversationId: string, limit: number = 10){
         const rows = await this.prisma.conversationExchange.findMany({
             where: {
                 conversationId,
