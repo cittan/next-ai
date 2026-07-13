@@ -44,6 +44,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const stream = new ReadableStream({
         async start(controller) {
             try {
+                // 首先发送 conversationId，让前端能够关联后续消息
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ conversationId })}\n\n`));
+
                 for await (const chunk of streamChatCompletion(messages, { model: 'qwen-turbo', maxTokens: 256, temperature: 0.3 })) {
                     if (chunk.content) {
                         if (!firstTokenTime) firstTokenTime = Date.now();
