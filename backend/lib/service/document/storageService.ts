@@ -2,9 +2,9 @@ import { config } from "@/lib/config";
 import { getMinio } from "@/lib/db/minio";
 
 
-export async function uploadFile(buffer: Buffer, file: File, mimeType: string) {
+export async function uploadFile(buffer: Buffer, fileName: string, mimeType: string) {
     // 实现文件上传逻辑
-    const objectName = `${config.minio.objectPrefix}/${Date.now()}_${file.name}`;
+    const objectName = `${config.minio.objectPrefix}/${Date.now()}_${fileName}`;
     await getMinio().putObject(config.minio.bucketName, objectName, buffer, buffer.length, { contentType: mimeType });
     return objectName;
 }

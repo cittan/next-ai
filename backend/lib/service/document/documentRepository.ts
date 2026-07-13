@@ -7,7 +7,7 @@ export const documentRepository = {
     async create(p: {
         documentName: string; fileType: number; fileSize: number;
         storageObjectName: string; parsedTextObjectName?: string; knowledgeScopeCode?: string;
-        knowledgeScopeName?: string; businessCategory: string; documentTags?: string;
+        knowledgeScopeName?: string; businessCategory?: string; documentTags?: string;
     }) {
         return getKnowledgePrisma().superAgentDocument.create({
             data: {

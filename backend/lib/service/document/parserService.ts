@@ -1,6 +1,14 @@
 
 export type ParserType = 'pdf' | 'docx' | 'txt' | 'md' | 'html';
 
+export const FileTypeMap: Record<ParserType, number> = {
+    pdf: 1,
+    docx: 2,
+    txt: 3,
+    md: 4,
+    html: 5,
+};
+
 export async function parseDocument(buffer: Buffer, format: ParserType): Promise<string> {
     switch (format) {
         case 'pdf': {
