@@ -1,3 +1,7 @@
+// 必须在所有 import 之前加载环境变量，因为 config 模块在 import 时就会执行 loadConfig()
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import { getMinio, downloadFromMinio } from './minio';
 import { config } from '../config';
 

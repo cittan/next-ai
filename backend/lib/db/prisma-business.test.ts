@@ -1,4 +1,7 @@
 // backend/lib/db/prisma-business.test.ts
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import { getBusinessPrisma } from './prisma-business';
 
 async function runTests() {

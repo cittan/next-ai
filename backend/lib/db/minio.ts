@@ -7,7 +7,7 @@ let _c: MinioClient | null = null;
 export function getMinio(): MinioClient {
     if(!_c) {
         _c = new MinioClient({
-            endPoint: config.minio.endpoint.replace(/https?:\/\//,''),
+            endPoint: config.minio.endpoint.replace(/https?:\/\//,'').replace(/:\d+$/,''),
             port: 9000,
             useSSL: false,
             accessKey: config.minio.accessKey,
