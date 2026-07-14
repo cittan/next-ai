@@ -27,5 +27,5 @@ export const adminApi = {
         });
         return base(`/api/manage/document/page/query?${params}`, { method: 'GET' });
     },
-    deleteDocument: (id: string) => base(`/api/manage/document/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: id }) }),
+    deleteDocument: (id: number) => base(`/api/manage/document/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: id }) }),
 }

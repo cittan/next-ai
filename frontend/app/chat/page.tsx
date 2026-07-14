@@ -157,7 +157,7 @@ export default function Home() {
                 />
             </div>
             <div className='flex-1 flex flex-col'>
-                <div className='h-14 border-b border-white/20 bg-white/40 backdrop-blur-md flex items-center justify-between px-6'>
+                <header className='h-14 border-b border-white/20 bg-white/40 backdrop-blur-md flex items-center justify-between px-6'>
                     <h1 className='text-lg font-semibold text-slate-800'>
                         {activeConversationId ? '当前会话' : '新会话'}
                     </h1>
@@ -165,7 +165,7 @@ export default function Home() {
                         <span className="text-sm text-gray-500">{getAuth().username}</span>
                         <button onClick={() => { logout(); router.push('/'); }} className="text-sm text-gray-400 hover:text-red-500">退出</button>
                     </div>
-                </div>
+                </header>
                 <div className='flex-1 overflow-auto p-6 space-y-4'>
                     {messages.length === 0 ? (
                         <div className='text-center text-slate-500'>
