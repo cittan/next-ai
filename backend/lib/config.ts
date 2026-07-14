@@ -19,6 +19,7 @@ function envNum(key: string, fallback: number): number {
 //相关配置的实体
 export interface AppConfig {
     ai: {
+        embeddingModel: string;
         baseUrl: string;
         apiKey: string;
         chatModel: string;
@@ -72,6 +73,7 @@ export interface AppConfig {
 function loadConfig(): AppConfig {
     return {
         ai: {
+            embeddingModel: env("AI_EMBEDDING_MODEL", ''),
             baseUrl: env("AI_BASE_URL", ''),
             apiKey: env("AI_API_KEY", ''),
             chatModel: env("AI_CHAT_MODEL", ''),

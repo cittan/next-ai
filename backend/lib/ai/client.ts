@@ -62,7 +62,7 @@ export async function chatCompletion(
 //function* 表示这是一个生成器函数，返回一个迭代器对象Generator<>。async function*表示这是一个异步生成器函数，返回一个异步迭代器对象AsyncGenerator<>。
 export async function* streamChatCompletion(
     messages: ChatMessage[],
-    options: { model?: string, temperature?: number, maxTokens?: number }={}
+    options: { model?: string, temperature?: number, maxTokens?: number } = {}
 ): AsyncGenerator<{ content: string, finishReason: string | null }> {
     const client = getAiClient();
     const stream = await client.chat.completions.create({
@@ -80,6 +80,28 @@ export async function* streamChatCompletion(
     }
 }
 
+//向量化一条文本
+export async function createEmbedding(text: string): Promise<number[]> {
+    const r = await getAiClient().embeddings.create({
+        model: config.ai.embeddingModel,
+        input: text
+    })
+    return r.data[0].embedding;
+}
 
+//批量向量化文本
+export async function createEmbeddings(texts: string[]): Promise<number[][]> {
+    const r = await getAiClient().embeddings.create({
+        model: config.ai.embeddingModel,
+        input: texts
+    })
+    return r.data.sort((a, b) => a.index - b.index).map(item => item.embedding);
+}
+
+//估算文本token数, 估算公式: 中文字符数 * 1.3 + 英文字符数 * 0.25
+export function estimateTokens(text: string): number {
+    const cn = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+    return Math.ceil(cn * 1.3 + (text.length - cn) * 0.25);
+}
 
 
