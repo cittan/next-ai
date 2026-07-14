@@ -13,6 +13,7 @@
     "@langchain/core": "^1.1.49",
     "@langchain/langgraph": "^1.4.2",
     "@langchain/openai": "^1.4.7",
+    "@langchain/textsplitters": "^1.0.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
