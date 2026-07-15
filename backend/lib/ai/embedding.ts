@@ -1,6 +1,6 @@
 import { ParserType } from "../service/document/parserService";
 import { MarkdownTextSplitter, RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { createEmbeddings } from "./client";
+import { createEmbeddings, estimateTokens } from "./client";
 
 //基于langchain提供的textSplitter进行文本分割，RecursiveCharacterTextSplitter根据字符进行递归分割
 export async function splitText(text: string, format: ParserType = 'txt'): Promise<string[]> {
@@ -147,5 +147,38 @@ export async function splitTextBySemantic(
 
         return allChunks;
     }
-  return await semanticSplit(text);
+    return await semanticSplit(text);
+}
+
+//批量计算文本的embedding
+export async function embedTexts(texts: string[]): Promise<number[][]> {
+    const batches: string[][] = [];
+    let cur: string[] = [], token = 0;
+
+    for (const t of texts) {
+        const tk = estimateTokens(t);
+        if (token + tk > 2000 && cur.length > 0) {
+            batches.push(cur);
+            cur = [];
+            token = 0;
+        }
+        cur.push(t);
+        token += tk;
+    }
+    if (cur.length > 0) {
+        batches.push(cur);
+    }
+    const all: number[][] = [];
+    for (const batch of batches) {
+        const embeddings = await createEmbeddings(batch);
+        all.push(...embeddings);
+    }
+    return all;
+}
+
+//对文本进行切分并计算embedding
+export async function splitAndEmbed(text: string, format: ParserType = 'txt', useSemantic: boolean = false): Promise<{ chunks: string[], embeddings: number[][] }> {
+    const chunks = await splitTextBySemantic(text, format, useSemantic);
+    const embeddings = await embedTexts(chunks);
+    return { chunks, embeddings };
 }
