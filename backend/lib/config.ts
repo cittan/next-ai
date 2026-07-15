@@ -34,6 +34,17 @@ export interface AppConfig {
         password: string;
         maxPoolSize: number;
     };
+    pgvector: {
+        host: string;
+        port: number;
+        database: string;
+        schema: string;
+        user: string;
+        password: string;
+        poolName: string;
+        maxPoolSize: number;
+        minIdle: number;
+    };
     redis: {
         host: string;
         port: number;
@@ -87,6 +98,17 @@ function loadConfig(): AppConfig {
             user: env('PGSQL_USER', ''),
             password: env('PGSQL_PASSWORD', ''),
             maxPoolSize: envNum('PGSQL_MAX_POOL_SIZE', 10),
+        },
+        pgvector: {
+            host: env('PG_HOST', ''),
+            port: envNum('PG_PORT', 5432),
+            database: env('PG_DATABASE', ''),
+            schema: env('PG_SCHEMA', 'public'),
+            user: env('PG_USER', ''),
+            password: env('PG_PASSWORD', ''),
+            poolName: env('PG_POOL_NAME', 'super-agent-pgvector-pool'),
+            maxPoolSize: envNum('PG_MAX_POOL_SIZE', 10),
+            minIdle: envNum('PG_MIN_IDLE', 2),
         },
         redis: {
             host: env('REDIS_HOST', ''),

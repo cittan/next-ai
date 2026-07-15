@@ -150,7 +150,7 @@ export async function splitTextBySemantic(
     return await semanticSplit(text);
 }
 
-//批量计算文本的embedding
+//批量计算文本的embedding，按token数量分组，每个组最多2000个token
 export async function embedTexts(texts: string[]): Promise<number[][]> {
     const batches: string[][] = [];
     let cur: string[] = [], token = 0;
