@@ -14,7 +14,12 @@ export async function GET(r: NextRequest) {
             pageNo,
             pageSize,
         });
-        return NextResponse.json({ pageNo, pageSize, total: docs.total, documents: docs.rows });
+        // 转换 fileSize 为 Number 类型，避免 JSON 序列化时出错
+        const documents = docs.rows.map(doc => ({
+            ...doc,
+            fileSize: doc.fileSize ? Number(doc.fileSize) : null
+        }));
+        return NextResponse.json({ pageNo, pageSize, total: docs.total, documents });
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });
     } 
