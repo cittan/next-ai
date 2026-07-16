@@ -26,8 +26,8 @@ export async function POST(r: NextRequest) {
             documentName: file.name,
             fileType: FileTypeMap[format],
             fileSize: file.size,
-            storageObjectName: objectName,
-            parsedTextObjectName: parsedName,
+            objectName: objectName,
+            parseTextPath: parsedName,
         });
         return NextResponse.json({ success: true, documentId: doc.id });
     } catch (e: any) {

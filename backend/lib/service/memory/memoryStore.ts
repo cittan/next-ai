@@ -24,10 +24,10 @@ export class MemoryStore {
             compressionCount: row.compressionCount,
             conversationGoal: row.conversationGoal ?? undefined,
             summary: row.summary,
-            stableFacts: JSON.parse((row.stableFacts as string) || '[]'),
-            pendingQuestions: JSON.parse((row.pendingQuestions as string) || '[]'),
-            retrievalHints: JSON.parse((row.retrievalHints as string) || '[]'),
-            resolvedPoints: JSON.parse((row.resolvedPoints as string) || '[]'),
+            stableFacts: Array.isArray(row.stableFacts) ? row.stableFacts : [],
+            pendingQuestions: Array.isArray(row.pendingQuestions) ? row.pendingQuestions : [],
+            retrievalHints: Array.isArray(row.retrievalHints) ? row.retrievalHints : [],
+            resolvedPoints: Array.isArray(row.resolvedPoints) ? row.resolvedPoints : [],
             tokenUsed: row.tokenUsed ?? 0,
         }
     }
@@ -40,10 +40,10 @@ export class MemoryStore {
         await this.prisma.conversationMemorySummary.create({
             data: {
                 ...p,
-                stableFacts: JSON.stringify(p.stableFacts),
-                pendingQuestions: JSON.stringify(p.pendingQuestions),
-                retrievalHints: JSON.stringify(p.retrievalHints),
-                resolvedPoints: JSON.stringify(p.resolvedPoints),
+                stableFacts: p.stableFacts,
+                pendingQuestions: p.pendingQuestions,
+                retrievalHints: p.retrievalHints,
+                resolvedPoints: p.resolvedPoints,
                 userPreferences: undefined,
             },
         })

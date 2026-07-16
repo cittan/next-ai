@@ -8,38 +8,38 @@ datasource db {
 }
 
 model SuperAgentDocument {
-    id                 Int      @id @default(autoincrement())
-    documentName       String   @map("document_name")
-    originalFileName   String?  @map("original_file_name")
-    fileType           Int?     @map("file_type")
-    mimeType           String?  @map("mime_type")
-    fileSize           BigInt?  @map("file_size")
-    storageType        Int?     @map("storage_type")
-    bucketName         String?  @map("bucket_name")
-    objectName         String?  @map("object_name")
-    objectUrl          String?  @map("object_url")
-    parseStatus        Int      @default(1) @map("parse_status")
-    strategyStatus     Int      @default(1) @map("strategy_status")
-    indexStatus        Int      @default(1) @map("index_status")
-    charCount          Int?     @map("char_count")
-    tokenCount         Int?     @map("token_count")
-    structureLevel     Int?     @map("structure_level")
+    id                  Int      @id @default(autoincrement())
+    documentName        String   @map("document_name")
+    originalFileName    String?  @map("original_file_name")
+    fileType            Int?     @map("file_type")
+    mimeType            String?  @map("mime_type")
+    fileSize            BigInt?  @map("file_size")
+    storageType         Int?     @map("storage_type")
+    bucketName          String?  @map("bucket_name")
+    objectName          String?  @map("object_name")
+    objectUrl           String?  @map("object_url")
+    parseStatus         Int      @default(1) @map("parse_status")
+    strategyStatus      Int      @default(1) @map("strategy_status")
+    indexStatus         Int      @default(1) @map("index_status")
+    charCount           Int?     @map("char_count")
+    tokenCount          Int?     @map("token_count")
+    structureLevel      Int?     @map("structure_level")
     contentQualityLevel Int?     @map("content_quality_level")
-    parseTextPath      String?  @map("parse_text_path")
-    parseErrorMsg      String?  @map("parse_error_msg")
-    knowledgeScopeCode String?  @map("knowledge_scope_code")
-    knowledgeScopeName String?  @map("knowledge_scope_name")
-    businessCategory   String?  @map("business_category")
-    documentTags       String?  @map("document_tags")
-    currentPlanId      Int?     @map("current_plan_id")
-    lastParseTaskId    Int?     @map("last_parse_task_id")
-    structureNodeCount Int?     @map("structure_node_count")
-    lastIndexTaskId    Int?     @map("last_index_task_id")
-    status             Int      @default(1)
-    createTime         DateTime @default(now()) @map("create_time") @db.Timestamp(6)
-    updateTime         DateTime @updatedAt @map("edit_time") @db.Timestamp(6)
+    parseTextPath       String?  @map("parse_text_path")
+    parseErrorMsg       String?  @map("parse_error_msg")
+    knowledgeScopeCode  String?  @map("knowledge_scope_code")
+    knowledgeScopeName  String?  @map("knowledge_scope_name")
+    businessCategory    String?  @map("business_category")
+    documentTags        String?  @map("document_tags")
+    currentPlanId       Int?     @map("current_plan_id")
+    lastParseTaskId     Int?     @map("last_parse_task_id")
+    structureNodeCount  Int?     @map("structure_node_count")
+    lastIndexTaskId     Int?     @map("last_index_task_id")
+    status              Int      @default(1)
+    createTime          DateTime @default(now()) @map("create_time") @db.Timestamp(6)
+    updateTime          DateTime @updatedAt @map("edit_time") @db.Timestamp(6)
 
-    chunks         DocumentChunk[]
+    chunks         DocumentChunkBusiness[]
     structureNodes DocumentStructureNode[]
     parentBlocks   DocumentParentBlock[]
     tasks          DocumentTask[]
@@ -81,7 +81,7 @@ model DocumentParentBlock {
     sourceType        Int?     @map("source_type")
     sectionPath       String?  @map("section_path")
     structureNodeId   Int?     @map("structure_node_id")
-    structureNodeType String?  @map("structure_node_type")
+    structureNodeType Int?     @map("structure_node_type")
     canonicalPath     String?  @map("canonical_path")
     itemIndex         Int?     @map("item_index")
     parentText        String?  @map("parent_text") @db.Text
@@ -93,12 +93,26 @@ model DocumentParentBlock {
     createTime        DateTime @default(now()) @map("create_time") @db.Timestamp(6)
 
     document SuperAgentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-    chunks   DocumentChunk[]
+    chunks   DocumentChunkBusiness[]
 
     @@map("document_parent_block")
 }
 
+// 向量存储表（用于 pgvector 扩展）
 model DocumentChunk {
+    id           Int     @id @default(autoincrement())
+    documentId   Int     @map("document_id")
+    chunkId      Int     @unique @map("chunk_id")
+    chunkText    String? @map("chunk_text") @db.Text
+    sectionPath  String? @map("section_path")
+    embedding    Json?   // pgvector 类型，Prisma 中用 Json 表示
+    vectorStatus Int?    @default(1) @map("vector_status")
+
+    @@map("document_chunk")
+}
+
+// 业务分块表
+model DocumentChunkBusiness {
     id                Int      @id @default(autoincrement())
     documentId        Int      @map("document_id")
     taskId            Int?     @map("task_id")
@@ -106,9 +120,9 @@ model DocumentChunk {
     parentBlockId     Int?     @map("parent_block_id")
     chunkNo           Int?     @map("chunk_no")
     sourceType        Int?     @map("source_type")
-    sectionPath       Int?     @map("section_path")
+    sectionPath       String?  @map("section_path")
     structureNodeId   Int?     @map("structure_node_id")
-    structureNodeType String?  @map("structure_node_type")
+    structureNodeType Int?     @map("structure_node_type")
     canonicalPath     String?  @map("canonical_path")
     itemIndex         Int?     @map("item_index")
     chunkText         String?  @map("chunk_text") @db.Text
@@ -192,8 +206,8 @@ model KnowledgeScope {
     scopeName       String
     parentScopeCode String?
     description     String?  @db.Text
-    aliases         String?       //暂空
-    examples        String?       //暂空
+    aliases         String? //暂空
+    examples        String? //暂空
     sortOrder       Int      @default(0)
     isActive        Boolean  @default(true)
     createTime      DateTime @default(now()) @map("create_time") @db.Timestamp(6)
@@ -207,10 +221,10 @@ model KnowledgeTopic {
     topicName           String
     scopeCode           String?
     description         String?  @db.Text
-    aliases             String?       //暂空
-    examples            String?       //暂空
-    answerShape         String?       //暂空
-    executionPreference String?       //暂空
+    aliases             String? //暂空
+    examples            String? //暂空
+    answerShape         String? //暂空
+    executionPreference String? //暂空
     sortOrder           Int      @default(0)
     isActive            Boolean  @default(true)
     createTime          DateTime @default(now()) @map("create_time") @db.Timestamp(6)
@@ -219,57 +233,57 @@ model KnowledgeTopic {
 }
 
 model KnowledgeRouteTrace {
-    id Int @id @default(autoincrement())
-    conversationId String? @db.Uuid
-    exchangeId Int?
-    question String? @db.Text
-    rewriteQuestion String? @db.Text
-    mode String? //冗余
-    topScopesJson Json?
-    topTopicsJson Json?
-    topDocumentsJson Json?
-    selectedDocumentId Int?
+    id                  Int      @id @default(autoincrement())
+    conversationId      String?  @db.Uuid
+    exchangeId          Int?
+    question            String?  @db.Text
+    rewriteQuestion     String?  @db.Text
+    mode                String? //冗余
+    topScopesJson       Json?
+    topTopicsJson       Json?
+    topDocumentsJson    Json?
+    selectedDocumentId  Int?
     hitSelectedDocument String?
-    confidence String?
-    routeStatus String?
-    errorMsg String?
+    confidence          String?
+    routeStatus         String?
+    errorMsg            String?
     matchedScopeCode    String?
     matchedTopicCode    String?
     matchedDocumentId   Int?
-    routeMethod String?
-    createTime DateTime @default(now()) @db.Timestamp(6)
- 
+    routeMethod         String?
+    createTime          DateTime @default(now()) @db.Timestamp(6)
+
     @@map("knowledge_route_trace")
 }
 
 model DocumentProfile {
-  id                   Int      @id @default(autoincrement())
-  documentId           Int      @unique 
-  documentSummary      String?  @db.Text
-  documentType         String? 
-  coreTopics           String? 
-  exampleQuestions     String? 
-  graphFriendly        String? 
-  supportsGraphOutline String?
-  supportsItemLookup   String?
-  supportsGraphAssist  String? 
-  profileSource        String?
-  profileStatus        String?  
-  errorMsg             String?
-  createTime           DateTime @default(now()) @db.Timestamp(6)
-  editTime             DateTime @default(now()) @db.Timestamp(6)
+    id                   Int      @id @default(autoincrement())
+    documentId           Int      @unique
+    documentSummary      String?  @db.Text
+    documentType         String?
+    coreTopics           String?
+    exampleQuestions     String?
+    graphFriendly        String?
+    supportsGraphOutline String?
+    supportsItemLookup   String?
+    supportsGraphAssist  String?
+    profileSource        String?
+    profileStatus        String?
+    errorMsg             String?
+    createTime           DateTime @default(now()) @db.Timestamp(6)
+    editTime             DateTime @default(now()) @db.Timestamp(6)
 
-  @@map("document_profile")
+    @@map("document_profile")
 }
 
 model KnowledgeTopicDocument {
-    id Int @id @default(autoincrement())
-    topicCode String
-    documentId Int
+    id             Int      @id @default(autoincrement())
+    topicCode      String
+    documentId     Int
     relevanceScore Float?
-    relationSource  String?
-    reason          String?
-    createTime      DateTime @default(now()) @db.Timestamp(6)
+    relationSource String?
+    reason         String?
+    createTime     DateTime @default(now()) @db.Timestamp(6)
 
     @@unique([topicCode, documentId])
     @@map("knowledge_topic_document")

@@ -23,12 +23,12 @@ export function getPgVectorPool(): Pool {
 export async function vectorSearch(embedding: number[], topK: number = 8, minSim: number = 0.45) {
     const v = `[${embedding.join(',')}]`;
     //计算数据库的embedding字段和传入的embeddding字段进行计算余弦相似度
-    const r = await getPgVectorPool().query(`SELECT dc."documentId",dc."chunkId",dc."chunkContent" as content, 1-(dc."vectorEmbedding"<=>$1::vector) 
-        as sim FROM document_chunk dc WHERE 1-(dc."vectorEmbedding"<=>$1::vector)>$2 ORDER BY sim DESC LIMIT $3`, [v, minSim, topK]);
+    const r = await getPgVectorPool().query(`SELECT dc.document_id, dc.chunk_id, dc.chunk_text as content, 1-(dc.embedding<=>$1::vector) 
+        as sim FROM document_chunk dc WHERE 1-(dc.embedding<=>$1::vector)>$2 ORDER BY sim DESC LIMIT $3`, [v, minSim, topK]);
     return r.rows.map((row: any) => {
         return {
-            documentId: row.documentId,
-            chunkId: row.chunkId,
+            documentId: row.document_id,
+            chunkId: row.chunk_id,
             content: row.content,
             similarity: parseFloat(row.sim),
         }

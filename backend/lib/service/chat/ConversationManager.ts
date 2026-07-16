@@ -74,17 +74,20 @@ export class ConversationManager {
 
     //充值会话
     async resetSession(p: { conversationId: string }) {
-        const r = await this.prisma.conversationExchange.deleteMany({
-            where: { conversationId: p.conversationId },
+        const result = await this.prisma.$transaction(async (tx) => {
+            const r = await tx.conversationExchange.deleteMany({
+                where: { conversationId: p.conversationId },
+            });
+            await tx.conversationMemorySummary.deleteMany({
+                where: { conversationId: p.conversationId },
+            });
+            await tx.conversationSession.update({
+                where: { conversationId: p.conversationId },
+                data: { status: ChatSessionStatus.IDLE }
+            })
+            return r.count;
         });
-        await this.prisma.conversationMemorySummary.deleteMany({
-            where: { conversationId: p.conversationId },
-        });
-        await this.prisma.conversationSession.update({
-            where: { conversationId: p.conversationId },
-            data: { status: ChatSessionStatus.IDLE }
-        })
-        return r.count;
+        return result;
     }
 
     //设置会话状态空闲
