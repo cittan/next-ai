@@ -22,6 +22,7 @@ export function getPgVectorPool(): Pool {
 // minSim=0.45 过滤掉相似度过低的结果，避免引入噪音；topK=8 返回最相似的8条记录
 export async function vectorSearch(embedding: number[], topK: number = 8, minSim: number = 0.45) {
     const v = `[${embedding.join(',')}]`;
+    //计算数据库的embedding字段和传入的embeddding字段进行计算余弦相似度
     const r = await getPgVectorPool().query(`SELECT dc."documentId",dc."chunkId",dc."chunkContent" as content, 1-(dc."vectorEmbedding"<=>$1::vector) 
         as sim FROM document_chunk dc WHERE 1-(dc."vectorEmbedding"<=>$1::vector)>$2 ORDER BY sim DESC LIMIT $3`, [v, minSim, topK]);
     return r.rows.map((row: any) => {
