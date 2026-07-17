@@ -46,7 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             try {
                 // 首先发送 conversationId，让前端能够关联后续消息
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ conversationId })}\n\n`));
-
+                //streamChatCompletion是一个异步的方法，返回一个可迭代的对象，每次迭代返回一个 chunk 对象
                 for await (const chunk of streamChatCompletion(messages, { model: 'qwen-turbo', maxTokens: 256, temperature: 0.3 })) {
                     if (chunk.content) {
                         if (!firstTokenTime) firstTokenTime = Date.now();

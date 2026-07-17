@@ -28,3 +28,21 @@ export async function indexChunksToEs(items: { documentId: number; documentName:
         await client.bulk({ index: idx, body });
     }
 }
+
+export async function searchByKeyword(keyword: string): Promise<any[]> {
+    const client = await getEsClient();
+    const idx = config.elasticsearch.indexName;
+    
+    const result = await client.search({
+        index: idx,
+        body: {
+            query: {
+                match: {
+                    chunkContent: keyword
+                }
+            }
+        }
+    });
+    
+    return result.hits.hits.map(hit => hit._source);
+}

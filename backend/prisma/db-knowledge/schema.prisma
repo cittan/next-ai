@@ -102,12 +102,13 @@ model DocumentParentBlock {
 model DocumentChunk {
     id           Int     @id @default(autoincrement())
     documentId   Int     @map("document_id")
-    chunkId      Int     @unique @map("chunk_id")
+    chunkId      Int     @map("chunk_id")
     chunkText    String? @map("chunk_text") @db.Text
     sectionPath  String? @map("section_path")
     embedding    Json?   // pgvector 类型，Prisma 中用 Json 表示
     vectorStatus Int?    @default(1) @map("vector_status")
 
+    @@unique([documentId, chunkId])
     @@map("document_chunk")
 }
 
@@ -118,7 +119,7 @@ model DocumentChunkBusiness {
     taskId            Int?     @map("task_id")
     planId            Int?     @map("plan_id")
     parentBlockId     Int?     @map("parent_block_id")
-    chunkNo           Int?     @map("chunk_no")
+    chunkId           Int?     @map("chunk_id")
     sourceType        Int?     @map("source_type")
     sectionPath       String?  @map("section_path")
     structureNodeId   Int?     @map("structure_node_id")
