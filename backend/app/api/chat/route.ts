@@ -6,6 +6,8 @@ import { ExchangeState } from '@/lib/models/enum';
 import { assembleContext, shouldCompress } from '@/lib/service/memory/contextAssembler';
 import { memoryStore } from '@/lib/service/memory/memoryStore';
 import { compressMemory } from '@/lib/service/memory/memorySummrizer';
+import { retrieve } from '@/lib/rag/channels/retirevalEngine';
+import { buildRagPrompt } from '@/lib/rag/channels/promptAssembler';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
     const body = await req.json() as ChatRequestDto;
@@ -24,9 +26,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 用户消息包含近期对话：将最近几轮的对话记录附在用户问题前面，帮助 AI 理解上下文
     const userContent = context.recentTranscript ? `近期对话:\n${context.recentTranscript}\n\n当前问题: ${body.question}` : body.question;
 
+    const ragResult = await retrieve(body.question);
+    const hasEnvidence = ragResult.results.length > 0;
+
     const messages: ChatMessage[] = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
+        { role: "user", content: hasEnvidence ? buildRagPrompt(body.question, ragResult.evidenceText) : userContent },
     ]
 
     //获得会话信息
