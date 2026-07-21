@@ -1,19 +1,79 @@
 
 
 
-//读取字符串类型的环境变量
 function env(key: string, fallback?: string): string {
-    return process.env[key] ?? fallback ?? "";
+    return process.env[key] ?? fallback ?? '';
 }
 
-//读取数字类型的环境变量
 function envNum(key: string, fallback: number): number {
-    const value = process.env[key];
-    if (value === undefined || value === '') {
-        return fallback;
-    }
-    const n = Number(value);
+    const v = process.env[key];
+    if (v === undefined || v === '') return fallback;
+    const n = Number(v);
     return Number.isNaN(n) ? fallback : n;
+}
+
+function envBool(key: string, fallback: boolean): boolean {
+    const v = process.env[key];
+    if (v === undefined || v === '') return fallback;
+    return v.toLowerCase() === 'true' || v === '1';
+}
+
+function envArr(key: string, fallback: string[]): string[] {
+    const v = process.env[key];
+    if (!v) return fallback;
+    return v.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+export interface HistorySummaryConfig {
+    enabled: boolean;
+    keepRecentTurns: number;
+    compressionBatchTurns: number;
+    summaryMaxChars: number;
+    recentTranscriptMaxChars: number;
+}
+
+export interface RewriteOptions {
+    enabled: boolean;
+    temperature: number;
+    topP: number;
+    thinking: boolean;
+}
+
+export interface RerankConfig {
+    enabled: boolean;
+    url: string;
+    apiKey: string;
+    model: string;
+    topN: number;
+    connectTimeoutMs: number;
+    readTimeoutMs: number;
+}
+
+export interface RagConfig {
+    enabled: boolean;
+    rewriteEnabled: boolean;
+    rewriteHistoryTurns: number;
+    maxSubQuestions: number;
+    vectorTopK: number;
+    keywordTopK: number;
+    candidateTopK: number;
+    finalTopK: number;
+    minVectorSimilarity: number;
+    keywordRelativeScoreFloor: number;
+    parentEvidenceMaxChars: number;
+    planningHistoryMaxChars: number;
+    answerHistoryMaxChars: number;
+    totalEvidenceMaxChars: number;
+    perSubQuestionEvidenceMaxChars: number;
+    noEvidenceReply: string;
+    answerSystemPrompt: string;
+    keywordChannelEnabled: boolean;
+    rerankEnabled: boolean;
+    channelTimeoutMs: number;
+    subQuestionTimeoutMs: number;
+    historySummary: HistorySummaryConfig;
+    rewriteOptions: RewriteOptions;
+    rerank: RerankConfig;
 }
 
 //相关配置的实体
@@ -78,6 +138,7 @@ export interface AppConfig {
         tokenSecret: string;
         tokenExpireMinutes: number;
     };
+    rag: RagConfig;
 }
 
 //加载配置
@@ -143,7 +204,59 @@ function loadConfig(): AppConfig {
             tokenSecret: env('ADMIN_TOKEN_SECRET', ''),
             tokenExpireMinutes: envNum('ADMIN_TOKEN_EXPIRE_MINUTES', 720),
         },
+        rag: {
+            enabled: envBool('RAG_ENABLED', true),
+            rewriteEnabled: envBool('RAG_REWRITE_ENABLED', true),
+            rewriteHistoryTurns: envNum('RAG_REWRITE_HISTORY_TURNS', 3),
+            maxSubQuestions: envNum('RAG_MAX_SUB_QUESTIONS', 3),
+            vectorTopK: envNum('RAG_VECTOR_TOP_K', 8),
+            keywordTopK: envNum('RAG_KEYWORD_TOP_K', 8),
+            candidateTopK: envNum('RAG_CANDIDATE_TOP_K', 10),
+            finalTopK: envNum('RAG_FINAL_TOP_K', 5),
+            minVectorSimilarity: envNum('RAG_MIN_VECTOR_SIMILARITY', 0.45),
+            keywordRelativeScoreFloor: envNum('RAG_KEYWORD_RELATIVE_SCORE_FLOOR', 0.35),
+            parentEvidenceMaxChars: envNum('RAG_PARENT_EVIDENCE_MAX_CHARS', 2200),
+            planningHistoryMaxChars: envNum('RAG_PLANNING_HISTORY_MAX_CHARS', 3000),
+            answerHistoryMaxChars: envNum('RAG_ANSWER_HISTORY_MAX_CHARS', 3000),
+            totalEvidenceMaxChars: envNum('RAG_TOTAL_EVIDENCE_MAX_CHARS', 5200),
+            perSubQuestionEvidenceMaxChars: envNum('RAG_PER_SUB_QUESTION_EVIDENCE_MAX_CHARS', 2600),
+            noEvidenceReply: env('RAG_NO_EVIDENCE_REPLY', '未找到相关信息'),
+            answerSystemPrompt: env(
+                'RAG_ANSWER_SYSTEM_PROMPT',
+                '你是一个基于知识库的智能问答助手。' +
+                '请根据提供的参考信息，准确、简洁地回答用户的问题。' +
+                '如果参考信息不足以回答问题，请如实告知用户。' +
+                '请使用中文回答，并引用相关信息来源。'
+            ),
+            keywordChannelEnabled: envBool('RAG_KEYWORD_CHANNEL_ENABLED', true),
+            rerankEnabled: envBool('RAG_RERANK_ENABLED', false),
+            channelTimeoutMs: envNum('RAG_CHANNEL_TIMEOUT_MS', 10000),
+            subQuestionTimeoutMs: envNum('RAG_SUB_QUESTION_TIMEOUT_MS', 30000),
 
+            historySummary: {
+                enabled: envBool('RAG_HISTORY_SUMMARY_ENABLED', true),
+                keepRecentTurns: envNum('RAG_HISTORY_SUMMARY_KEEP_RECENT_TURNS', 2),
+                compressionBatchTurns: envNum('RAG_HISTORY_SUMMARY_COMPRESSION_BATCH_TURNS', 10),
+                summaryMaxChars: envNum('RAG_HISTORY_SUMMARY_MAX_CHARS', 1000),
+                recentTranscriptMaxChars: envNum('RAG_HISTORY_SUMMARY_RECENT_TRANSCRIPT_MAX_CHARS', 2000),
+            },
+            rewriteOptions: {
+                enabled: envBool('RAG_REWRITE_OPTIONS_ENABLED', false),
+                temperature: envNum('RAG_REWRITE_OPTIONS_TEMPERATURE', 0.7),
+                topP: envNum('RAG_REWRITE_OPTIONS_TOP_P', 0.9),
+                thinking: envBool('RAG_REWRITE_OPTIONS_THINKING', false),
+            },
+
+            rerank: {
+                enabled: envBool('RERANK_ENABLED', false),
+                url: env('RERANK_URL', ''),
+                apiKey: env('RERANK_API_KEY', ''),
+                model: env('RERANK_MODEL', ''),
+                topN: envNum('RERANK_TOP_N', 5),
+                connectTimeoutMs: envNum('RERANK_CONNECT_TIMEOUT_MS', 5000),
+                readTimeoutMs: envNum('RERANK_READ_TIMEOUT_MS', 30000),
+            },
+        },
     }
 }
 
