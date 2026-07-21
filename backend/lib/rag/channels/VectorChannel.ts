@@ -3,7 +3,7 @@ import { vectorSearch } from '../../db/pgvector';
 import { config } from '../../config';
 
 
-export interface RetrivealResult {
+export interface RetrievalResult {
     documentId: number,
     chunkId: number,
     content: string,
@@ -11,7 +11,7 @@ export interface RetrivealResult {
     channel: 'vector' | 'keyword'
 }
 
-export async function vectorChannelRecall(query: string, topK = config.rag.vectorTopK): Promise<RetrivealResult[]> {
+export async function vectorChannelRecall(query: string, topK = config.rag.vectorTopK): Promise<RetrievalResult[]> {
     try {
         const embed = await createEmbedding(query);
         const r = await vectorSearch(embed, topK, config.rag.minVectorSimilarity);

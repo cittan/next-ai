@@ -1,8 +1,9 @@
 import { keywordSearch } from "@/lib/db/elasticsearch";
 import { config } from "../../config";
+import { RetrievalResult } from "./VectorChannel";
 
 
-export async function keywordChannelRecall(query: string, topK = config.rag.keywordTopK) {
+export async function keywordChannelRecall(query: string, topK = config.rag.keywordTopK): Promise<RetrievalResult[]> {
     try {
         const r = await keywordSearch(query, topK);
         return r.map((x) => ({ 
