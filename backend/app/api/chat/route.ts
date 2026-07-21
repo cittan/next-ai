@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { streamChatCompletion, ChatMessage } from '@/lib/ai/client'
 import { ChatRequestDto } from '@/lib/models/chat';
 import { conversationManager } from '@/lib/service/chat/ConversationManager';
-import { ExchangeState } from '@/lib/models/enum';
+import { ChatQueryMode, ExchangeState } from '@/lib/models/enum';
 import { assembleContext, shouldCompress } from '@/lib/service/memory/contextAssembler';
 import { memoryStore } from '@/lib/service/memory/memoryStore';
 import { compressMemory } from '@/lib/service/memory/memorySummrizer';
 import { retrieve } from '@/lib/rag/channels/retirevalEngine';
 import { buildRagPrompt } from '@/lib/rag/channels/promptAssembler';
+import { prepareExecutionPlan } from '@/lib/service/chat/preparationOrchestrator';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
     const body = await req.json() as ChatRequestDto;
@@ -16,12 +17,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const conversationId = (body.conversationId as string) || crypto.randomUUID();
+    const plan = await prepareExecutionPlan({ conversationId, question: body.question, chatMode: ChatQueryMode.OPEN_CHAT });
 
     // 组装记忆上下文：从数据库获取长期摘要和近期对话记录
     const context = await assembleContext(conversationId, memoryStore);
 
     // system prompt 包含长期记忆：将压缩后的对话摘要注入到系统提示词中
-    const systemPrompt = `你是Super Agent智能助手。${context.longTermSummary ? `\n对话历史摘要: ${context.longTermSummary}` : ''}`;
+    const systemPrompt = `你是Super Agent智能助手。${plan.longTermSummary ? `\n对话历史摘要: ${plan.longTermSummary}` : ''}`;
 
     // 用户消息包含近期对话：将最近几轮的对话记录附在用户问题前面，帮助 AI 理解上下文
     const userContent = context.recentTranscript ? `近期对话:\n${context.recentTranscript}\n\n当前问题: ${body.question}` : body.question;
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!session) {
         await conversationManager.createSession({ conversationId, chatMode: 'OPEN_CHAT' });
     }
-    const exchangeId = await conversationManager.getLatestExchangeId(conversationId) + 1;
+    const exchangeId = plan.exchangeId;
     await conversationManager.createExchange({ conversationId, exchangeId, question: body.question });
     const startTime = Date.now();
     let fullAnswer = '';
