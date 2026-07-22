@@ -1,5 +1,5 @@
 import { config } from "../../config";
-import { RetrievalResult, vectorChannelRecall } from "./VectorChannel";
+import { RetrievalResult, vectorChannelRecall } from "./vectorChannel";
 import { keywordChannelRecall } from "./keywordChannel";
 
 
