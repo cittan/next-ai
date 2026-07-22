@@ -16,6 +16,8 @@ export default function Home() {
     const [sending, setSending] = useState(false);
     const [answer, setAnswer] = useState('');
     const [error, setError] = useState('');
+    const [chatMode, setChatMode] = useState<'OPEN_CHAT' | 'AUTO_DOCUMENT' | 'CURRENT_DOCUMENT'>('OPEN_CHAT');
+
 
     useEffect(() => { verifyAuth().then(ok => { if (!ok) { router.push('/'); } }); }, []);
 
@@ -165,6 +167,11 @@ export default function Home() {
                         <span className="text-sm text-gray-500">{getAuth().username}</span>
                         <button onClick={() => { logout(); router.push('/'); }} className="text-sm text-gray-400 hover:text-red-500">退出</button>
                     </div>
+                    <select value={chatMode} onChange={e => setChatMode(e.target.value as any)} className="text-sm border rounded-lg px-2 py-1">
+                        <option value="OPEN_CHAT">自由对话</option>
+                        <option value="AUTO_DOCUMENT">自动匹配文档</option>
+                        <option value="CURRENT_DOCUMENT">指定文档</option>
+                    </select>
                 </header>
                 <div className='flex-1 overflow-auto p-6 space-y-4'>
                     {messages.length === 0 ? (
