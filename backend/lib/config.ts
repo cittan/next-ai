@@ -138,6 +138,17 @@ export interface AppConfig {
         tokenSecret: string;
         tokenExpireMinutes: number;
     };
+    tavily: {
+        enabled: boolean;
+        baseUrl: string;
+        searchPath: string;
+        apiKey: string;
+        topic: string;
+        searchDepth: string;
+        maxResults: number;
+        includeAnswer: boolean;
+        includeRawContent: boolean;
+    };
     rag: RagConfig;
 }
 
@@ -203,6 +214,17 @@ function loadConfig(): AppConfig {
             password: env('ADMIN_PASSWORD', ''),
             tokenSecret: env('ADMIN_TOKEN_SECRET', ''),
             tokenExpireMinutes: envNum('ADMIN_TOKEN_EXPIRE_MINUTES', 720),
+        },
+        tavily: {
+            enabled: envBool('TAVILY_ENABLED', true),
+            baseUrl: env('TAVILY_BASE_URL', 'https://api.tavily.com'),
+            searchPath: env('TAVILY_SEARCH_PATH', '/search'),
+            apiKey: env('TAVILY_API_KEY', ''),
+            topic: env('TAVILY_TOPIC', 'general'),
+            searchDepth: env('TAVILY_SEARCH_DEPTH', 'advanced'),
+            maxResults: envNum('TAVILY_MAX_RESULTS', 5),
+            includeAnswer: envBool('TAVILY_INCLUDE_ANSWER', true),
+            includeRawContent: envBool('TAVILY_INCLUDE_RAW_CONTENT', false),
         },
         rag: {
             enabled: envBool('RAG_ENABLED', true),
