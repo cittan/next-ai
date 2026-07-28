@@ -32,3 +32,22 @@ export enum DocumentNavigationAction {
   CHILD_SECTION_DESCEND = 'CHILD_SECTION_DESCEND',
   ITEM_REFERENCE = 'ITEM_REFERENCE',
 }
+
+// 文档策略类型
+export enum DocumentStrategyType {
+  STRUCTURE = 'STRUCTURE',      // 结构切分
+  SEMANTIC = 'SEMANTIC',        // 语义切分
+  RECURSIVE = 'RECURSIVE',      // 递归切分
+}
+
+// 文档策略管道类型
+export enum DocumentStrategyPipelineType {
+  PARENT = 'PARENT',            // 父块
+  CHILD = 'CHILD',              // 子块
+}
+
+// 文档策略角色
+export enum DocumentStrategyRole {
+  PRIMARY = 'PRIMARY',          // 主要策略
+  FALLBACK = 'FALLBACK',        // 兜底策略
+}

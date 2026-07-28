@@ -3,7 +3,6 @@ const nextConfig = {
   serverExternalPackages: [
     'kafkajs',
     '@elastic/elasticsearch',
-    'neo4j-driver',
     'pg',
     'ioredis',
     'minio',

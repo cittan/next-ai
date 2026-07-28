@@ -150,6 +150,13 @@ export interface AppConfig {
         includeRawContent: boolean;
     };
     rag: RagConfig;
+    kafka: {
+        brokers: string;
+        groupId: string;
+        parseTopic: string;
+        indexTopic: string;
+        autoCreateTopics: boolean;
+    };
 }
 
 //加载配置
@@ -225,6 +232,13 @@ function loadConfig(): AppConfig {
             maxResults: envNum('TAVILY_MAX_RESULTS', 5),
             includeAnswer: envBool('TAVILY_INCLUDE_ANSWER', true),
             includeRawContent: envBool('TAVILY_INCLUDE_RAW_CONTENT', false),
+        },
+        kafka: {
+            brokers: env('KAFKA_BROKERS', 'localhost:9092'),
+            groupId: env('KAFKA_GROUP_ID', 'super-agent-group'),
+            parseTopic: env('KAFKA_PARSE_TOPIC', 'document-parse'),
+            indexTopic: env('KAFKA_INDEX_TOPIC', 'document-index'),
+            autoCreateTopics: envBool('KAFKA_AUTO_CREATE_TOPICS', true),
         },
         rag: {
             enabled: envBool('RAG_ENABLED', true),

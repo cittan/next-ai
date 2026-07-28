@@ -5,7 +5,7 @@ let _c: Client | null = null;
 export function getEsClient() {
     if(!_c) {
         _c = new Client({
-            node: config.elasticsearch.uris[0],
+            nodes: config.elasticsearch.uris,
             auth: config.elasticsearch.username ? {
                 username: config.elasticsearch.username,
                 password: config.elasticsearch.password,

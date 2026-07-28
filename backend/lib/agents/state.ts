@@ -11,7 +11,6 @@ export interface AgentStateShape {
   llmCallCount: number;
   toolCallCount: number;
   retrievedDocuments: Document[];
-  graphContext: string;
   longTermSummary: string;
   recentTranscript: string;
   executionMode: string;
@@ -50,12 +49,6 @@ export const AgentState = Annotation.Root({
   retrievedDocuments: Annotation<Document[]>({
     reducer: (_, update) => update,
     default: () => [],
-  }),
-
-  /** 来自 Neo4j 的图谱结构上下文 */
-  graphContext: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => '',
   }),
 
   /** 长期记忆摘要 */
