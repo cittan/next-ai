@@ -90,7 +90,15 @@ Implementation commit created:
 05afce3 feat: migrate knowledge management APIs
 ```
 
-The report is committed separately after this update. Push result will be appended after the requested push completes.
+The report is committed separately after this update. Initial push completed successfully:
+
+```text
+next-ai HEAD:feat/express-backend-migration
+To github.com:cittan/next-ai.git
+   ef53130..0049f80  HEAD -> feat/express-backend-migration
+```
+
+The final report-update commit is pushed immediately after this report change.
 
 ## Concerns
 
