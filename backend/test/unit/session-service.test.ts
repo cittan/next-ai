@@ -71,6 +71,23 @@ describe('session service', () => {
     });
   });
 
+  it('maps exchange timestamps to the shared createdAt field', async () => {
+    const service = createSessionService({
+      getSession: async () => ({ conversationId: 'c1', userId: 7 }),
+      getRecentExchanges: async () => [{
+        conversationId: 'c1', exchangeId: 1, question: 'Question', answer: 'Answer', exchangeState: 2,
+        createTime: '2026-08-17T00:00:00.000Z',
+      }],
+    });
+
+    await expect(service.getExchanges({
+      conversationId: 'c1', limit: 50, user: { userId: 7, username: 'alice', role: 'user' },
+    })).resolves.toEqual([{
+      conversationId: 'c1', exchangeId: 1, question: 'Question', answer: 'Answer', exchangeState: 2,
+      createdAt: '2026-08-17T00:00:00.000Z',
+    }]);
+  });
+
   it('serializes dates and bigint values from the repository', async () => {
     const repository: SessionRepository = {
       listSessions: async () => ({

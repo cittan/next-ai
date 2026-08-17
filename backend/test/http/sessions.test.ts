@@ -1,3 +1,4 @@
+import { ExchangeSchema, MemorySummarySchema, SessionPageSchema } from '@next-ai/contracts';
 import type { RequestHandler } from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,8 +15,17 @@ function createTestApp(sessionService: SessionService, requireAuth?: RequestHand
 
 function createService(): SessionService {
   return {
-    listSessions: vi.fn().mockResolvedValue({ items: [], page: 1, pageSize: 10, total: 0 }),
-    getExchanges: vi.fn().mockResolvedValue([]),
+    listSessions: vi.fn().mockResolvedValue({
+      items: [{
+        conversationId, chatMode: 'OPEN_CHAT', status: 0, title: 'Hello',
+        createdAt: '2026-08-17T00:00:00.000Z', updatedAt: '2026-08-17T01:00:00.000Z',
+      }],
+      page: 1, pageSize: 10, total: 1,
+    }),
+    getExchanges: vi.fn().mockResolvedValue([{
+      conversationId, exchangeId: 1, question: 'Question', answer: 'Answer', exchangeState: 2,
+      createdAt: '2026-08-17T00:00:00.000Z',
+    }]),
     getSummary: vi.fn().mockResolvedValue({
       conversationId, coveredExchangeId: 0, compressionCount: 0, conversationGoal: '', summary: '',
       stableFacts: [], pendingQuestions: [], retrievalHints: [], resolvedPoints: [], tokenUsed: 0,
@@ -45,7 +55,13 @@ describe('session routes', () => {
       .get('/api/chat/sessions?page=1&pageSize=10');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ items: [], page: 1, pageSize: 10, total: 0 });
+    expect(SessionPageSchema.parse(response.body)).toEqual({
+      items: [{
+        conversationId, chatMode: 'OPEN_CHAT', status: 0, title: 'Hello',
+        createdAt: new Date('2026-08-17T00:00:00.000Z'), updatedAt: new Date('2026-08-17T01:00:00.000Z'),
+      }],
+      page: 1, pageSize: 10, total: 1,
+    });
     expect(service.listSessions).toHaveBeenCalledWith({ page: 1, pageSize: 10, keyword: undefined, user });
   });
 
@@ -63,7 +79,10 @@ describe('session routes', () => {
       .get(`/api/chat/sessions/${conversationId}/exchanges?limit=50`);
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ items: [] });
+    expect(response.body.items.map((item: unknown) => ExchangeSchema.parse(item))).toEqual([{
+      conversationId, exchangeId: 1, question: 'Question', answer: 'Answer', exchangeState: 2,
+      createdAt: new Date('2026-08-17T00:00:00.000Z'),
+    }]);
     expect(service.getExchanges).toHaveBeenCalledWith({ conversationId, limit: 50, user });
   });
 
@@ -72,7 +91,10 @@ describe('session routes', () => {
       .get(`/api/chat/sessions/${conversationId}/summary`);
 
     expect(response.status).toBe(200);
-    expect(response.body.summary).toMatchObject({ conversationId, summary: '' });
+    expect(MemorySummarySchema.parse(response.body.summary)).toEqual({
+      conversationId, coveredExchangeId: 0, compressionCount: 0, conversationGoal: '', summary: '',
+      stableFacts: [], pendingQuestions: [], retrievalHints: [], resolvedPoints: [], tokenUsed: 0,
+    });
   });
 
   it('rejects an empty session title', async () => {

@@ -1,4 +1,4 @@
-import { MemorySummarySchema } from '@next-ai/contracts';
+import { ExchangeSchema, MemorySummarySchema, SessionPageSchema } from '@next-ai/contracts';
 import { AppError } from '../../http/errors/app-error';
 import type { AuthenticatedUser } from '../../http/middleware/auth';
 
@@ -104,7 +104,7 @@ export function createSessionService(repository: SessionRepository): SessionServ
         pageSize,
         ...(user.role === 'admin' ? { includeAllUsers: true } : { userId: user.userId }),
       });
-      return {
+      const sessionPage = SessionPageSchema.parse({
         items: result.sessions.map((session) => ({
           conversationId: session.conversationId,
           chatMode: session.chatMode,
@@ -116,12 +116,27 @@ export function createSessionService(repository: SessionRepository): SessionServ
         page,
         pageSize,
         total: Number(result.total),
+      });
+      return {
+        ...sessionPage,
+        items: sessionPage.items.map((session) => ({
+          ...session,
+          createdAt: session.createdAt?.toISOString(),
+          updatedAt: session.updatedAt?.toISOString(),
+        })),
       };
     },
 
     async getExchanges({ conversationId, limit, user }) {
       await assertAccess(conversationId, user);
-      return required(repository.getRecentExchanges, 'getRecentExchanges')(conversationId, limit);
+      const exchanges = await required(repository.getRecentExchanges, 'getRecentExchanges')(conversationId, limit);
+      return exchanges.map(({ createTime, ...exchange }) => {
+        const mapped = ExchangeSchema.parse({
+          ...exchange,
+          createdAt: serializeDate(createTime as Date | string | undefined),
+        });
+        return { ...mapped, createdAt: mapped.createdAt?.toISOString() };
+      });
     },
 
     async getSummary({ conversationId, user }) {

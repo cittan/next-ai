@@ -43,6 +43,10 @@ export const ExchangeSchema = z.object({
 });
 export type Exchange = z.infer<typeof ExchangeSchema>;
 
+export const SessionIdParamsSchema = z.object({ id: z.uuid() });
+export const ExchangesQuerySchema = z.object({ limit: z.coerce.number().int().positive().max(100).default(50) });
+export const RenameSessionSchema = z.object({ title: z.string().trim().min(1).max(200) });
+
 export const MemorySummarySchema = z.object({
   conversationId: z.string(),
   coveredExchangeId: z.number().int().nonnegative(),

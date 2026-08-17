@@ -3,8 +3,11 @@ import {
   ApiErrorEnvelopeSchema,
   ChatRequestSchema,
   ChatStreamEventSchema,
+  ExchangesQuerySchema,
   MemorySummarySchema,
   PaginationQuerySchema,
+  RenameSessionSchema,
+  SessionIdParamsSchema,
   apiRoutes,
 } from '@next-ai/contracts';
 
@@ -45,5 +48,12 @@ describe('shared contracts', () => {
     expect(() => MemorySummarySchema.parse({
       conversationId: 'c1', summary: '', coveredExchangeId: 0, compressionCount: 0,
     })).toThrow();
+  });
+
+  it('exports session request schemas', () => {
+    expect(SessionIdParamsSchema.parse({ id: '8e928b74-7f80-4eb0-9484-3f93460976bb' }).id)
+      .toBe('8e928b74-7f80-4eb0-9484-3f93460976bb');
+    expect(ExchangesQuerySchema.parse({}).limit).toBe(50);
+    expect(RenameSessionSchema.parse({ title: '  Renamed  ' }).title).toBe('Renamed');
   });
 });
