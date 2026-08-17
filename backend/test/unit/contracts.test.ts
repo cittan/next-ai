@@ -8,6 +8,11 @@ import {
   PaginationQuerySchema,
   RenameSessionSchema,
   SessionIdParamsSchema,
+  KnowledgeScopeParamsSchema,
+  KnowledgeTopicParamsSchema,
+  KnowledgeTopicsQuerySchema,
+  UpdateKnowledgeScopeSchema,
+  UpdateKnowledgeTopicSchema,
   apiRoutes,
 } from '@next-ai/contracts';
 
@@ -55,5 +60,14 @@ describe('shared contracts', () => {
       .toBe('8e928b74-7f80-4eb0-9484-3f93460976bb');
     expect(ExchangesQuerySchema.parse({}).limit).toBe(50);
     expect(RenameSessionSchema.parse({ title: '  Renamed  ' }).title).toBe('Renamed');
+  });
+
+  it('exports knowledge resource params and topic filtering schemas', () => {
+    expect(KnowledgeScopeParamsSchema.parse({ scopeCode: ' hr ' }).scopeCode).toBe('hr');
+    expect(KnowledgeTopicParamsSchema.parse({ topicCode: ' payroll ' }).topicCode).toBe('payroll');
+    expect(KnowledgeTopicsQuerySchema.parse({ scopeCode: ' hr ' }).scopeCode).toBe('hr');
+    expect(() => KnowledgeScopeParamsSchema.parse({ scopeCode: ' ' })).toThrow();
+    expect(() => UpdateKnowledgeScopeSchema.parse({})).toThrow();
+    expect(() => UpdateKnowledgeTopicSchema.parse({})).toThrow();
   });
 });
