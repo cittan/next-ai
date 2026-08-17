@@ -11,6 +11,9 @@ import {
   KnowledgeScopeParamsSchema,
   KnowledgeTopicParamsSchema,
   KnowledgeTopicsQuerySchema,
+  DocumentIdParamsSchema,
+  DocumentListQuerySchema,
+  DocumentUploadResponseSchema,
   UpdateKnowledgeScopeSchema,
   UpdateKnowledgeTopicSchema,
   apiRoutes,
@@ -60,6 +63,15 @@ describe('shared contracts', () => {
       .toBe('8e928b74-7f80-4eb0-9484-3f93460976bb');
     expect(ExchangesQuerySchema.parse({}).limit).toBe(50);
     expect(RenameSessionSchema.parse({ title: '  Renamed  ' }).title).toBe('Renamed');
+  });
+
+  it('exports document request and upload response schemas', () => {
+    expect(DocumentListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 10 });
+    expect(DocumentListQuerySchema.parse({ keyword: ' handbook ' })).toEqual({ page: 1, pageSize: 10, keyword: 'handbook' });
+    expect(DocumentIdParamsSchema.parse({ documentId: '7' }).documentId).toBe(7);
+    expect(DocumentUploadResponseSchema.parse({
+      documentId: 1, taskId: 2, documentName: 'handbook.txt', parseStatus: 2, strategyStatus: 1, indexStatus: 1,
+    }).taskId).toBe(2);
   });
 
   it('exports knowledge resource params and topic filtering schemas', () => {

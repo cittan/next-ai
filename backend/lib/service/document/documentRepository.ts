@@ -64,7 +64,10 @@ export const documentRepository = {
         ]);
         return {
             total,
-            rows
+            rows: rows.map((row) => ({
+                ...row,
+                fileSize: row.fileSize === null ? null : Number(row.fileSize),
+            })),
         }
     },
 

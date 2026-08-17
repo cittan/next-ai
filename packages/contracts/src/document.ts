@@ -22,6 +22,28 @@ export const DocumentPageSchema = z.object({
 });
 export type DocumentPage = z.infer<typeof DocumentPageSchema>;
 
+export const DocumentListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(10),
+  keyword: z.string().trim().optional(),
+});
+export type DocumentListQuery = z.infer<typeof DocumentListQuerySchema>;
+
+export const DocumentIdParamsSchema = z.object({
+  documentId: z.coerce.number().int().positive(),
+});
+export type DocumentIdParams = z.infer<typeof DocumentIdParamsSchema>;
+
+export const DocumentUploadResponseSchema = z.object({
+  documentId: z.number().int().positive(),
+  taskId: z.number().int().positive(),
+  documentName: z.string().min(1),
+  parseStatus: z.number().int(),
+  strategyStatus: z.number().int(),
+  indexStatus: z.number().int(),
+});
+export type DocumentUploadResponse = z.infer<typeof DocumentUploadResponseSchema>;
+
 export const DocumentTaskSchema = z.object({
   id: z.number().int().positive(),
   documentId: z.number().int().positive(),

@@ -1,10 +1,14 @@
-import { config } from "@/lib/config";
-import { getMinio } from "@/lib/db/minio";
+import { config } from '../../config';
+import { getMinio } from '../../db/minio';
 
+
+export function buildObjectName(objectPrefix: string, fileName: string, timestamp = Date.now()): string {
+    return `${objectPrefix.replace(/\/+$/, '')}/${timestamp}_${fileName}`;
+}
 
 export async function uploadFile(buffer: Buffer, fileName: string, mimeType: string) {
-    // 实现文件上传逻辑
-    const objectName = `${config.minio.objectPrefix}/${Date.now()}_${fileName}`;
+    // Keep the persisted object name identical to the object uploaded to MinIO so compensation can remove it.
+    const objectName = buildObjectName(config.minio.objectPrefix, fileName);
     await getMinio().putObject(config.minio.bucketName, objectName, buffer, buffer.length, { contentType: mimeType });
     return objectName;
 }
