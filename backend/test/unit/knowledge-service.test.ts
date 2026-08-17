@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createKnowledgeService, type KnowledgeRepository } from '../../src/application/knowledge/knowledge.service';
 
 function createRepository(overrides: Partial<KnowledgeRepository> = {}): KnowledgeRepository {
-  return {
+  const repository = {
     listScopes: vi.fn().mockResolvedValue([]),
     createScope: vi.fn(),
     updateScope: vi.fn(),
@@ -13,8 +13,13 @@ function createRepository(overrides: Partial<KnowledgeRepository> = {}): Knowled
     updateTopic: vi.fn(),
     deleteTopic: vi.fn(),
     findTopic: vi.fn().mockResolvedValue(null),
+    withScopeLocks: vi.fn(),
     ...overrides,
-  };
+  } as KnowledgeRepository;
+  if (!overrides.withScopeLocks) {
+    repository.withScopeLocks = vi.fn((_scopeCodes, operation) => operation(repository));
+  }
+  return repository;
 }
 
 describe('knowledge service', () => {
@@ -44,6 +49,28 @@ describe('knowledge service', () => {
       .rejects.toMatchObject({ code: 'KNOWLEDGE_SCOPE_NOT_FOUND', statusCode: 404 });
   });
 
+  it('locks the scope before verifying and creating a topic', async () => {
+    const events: string[] = [];
+    const repository = createRepository({
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        events.push(`lock:${scopeCodes.join(',')}`);
+        return operation(repository);
+      }),
+      findScope: vi.fn(async () => {
+        events.push('find-scope');
+        return { scopeCode: 'hr', scopeName: 'Human Resources', description: null };
+      }),
+      createTopic: vi.fn(async () => {
+        events.push('create-topic');
+        return { topicCode: 'payroll', scopeCode: 'hr', topicName: 'Payroll', description: null };
+      }),
+    });
+
+    await createKnowledgeService(repository).createTopic({ code: 'payroll', scopeCode: 'hr', name: 'Payroll' });
+
+    expect(events).toEqual(['lock:hr', 'find-scope', 'create-topic']);
+  });
+
   it('validates the parent scope before creating a topic', async () => {
     const repository = createRepository();
 
@@ -51,6 +78,38 @@ describe('knowledge service', () => {
       code: 'payroll', scopeCode: 'hr', name: 'Payroll',
     })).rejects.toMatchObject({ code: 'KNOWLEDGE_SCOPE_NOT_FOUND', statusCode: 404 });
     expect(repository.createTopic).not.toHaveBeenCalled();
+  });
+
+  it('locks old and new scope codes in stable order before moving a topic', async () => {
+    const events: string[] = [];
+    const repository = createRepository({
+      findTopic: vi.fn(async () => {
+        events.push('find-topic');
+        return { topicCode: 'payroll', scopeCode: 'hr', topicName: 'Payroll', description: null };
+      }),
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        events.push(`lock:${scopeCodes.join(',')}`);
+        return operation(repository);
+      }),
+      findScope: vi.fn(async () => {
+        events.push('find-target-scope');
+        return { scopeCode: 'finance', scopeName: 'Finance', description: null };
+      }),
+      updateTopic: vi.fn(async () => {
+        events.push('update-topic');
+        return { topicCode: 'payroll', scopeCode: 'finance', topicName: 'Payroll', description: null };
+      }),
+    });
+
+    await createKnowledgeService(repository).updateTopic('payroll', { scopeCode: 'finance' });
+
+    expect(events).toEqual([
+      'find-topic',
+      'lock:finance,hr',
+      'find-topic',
+      'find-target-scope',
+      'update-topic',
+    ]);
   });
 
   it('validates the existing topic and new parent scope before updating a topic', async () => {
@@ -71,6 +130,26 @@ describe('knowledge service', () => {
     await service.listTopics('hr');
 
     expect(listTopics).toHaveBeenCalledWith('hr');
+  });
+
+  it('uses the same scope lock key for topic creation and scope deletion', async () => {
+    const lockKeys: string[][] = [];
+    const repository = createRepository({
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        lockKeys.push(scopeCodes);
+        return operation(repository);
+      }),
+      findScope: vi.fn().mockResolvedValue({ scopeCode: 'hr', scopeName: 'Human Resources', description: null }),
+      createTopic: vi.fn().mockResolvedValue({ topicCode: 'payroll', scopeCode: 'hr', topicName: 'Payroll', description: null }),
+      listTopics: vi.fn().mockResolvedValue([]),
+      deleteScope: vi.fn().mockResolvedValue(true),
+    });
+    const service = createKnowledgeService(repository);
+
+    await service.createTopic({ code: 'payroll', scopeCode: 'hr', name: 'Payroll' });
+    await service.deleteScope('hr');
+
+    expect(lockKeys).toEqual([['hr'], ['hr']]);
   });
 
   it('rejects deletion of a scope that still has topics', async () => {

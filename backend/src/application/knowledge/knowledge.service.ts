@@ -32,6 +32,7 @@ export interface KnowledgeRepository {
   updateTopic(topicCode: string, input: { scopeCode?: string; topicName?: string; description?: string | null }): Promise<KnowledgeTopicRecord | null>;
   deleteTopic(topicCode: string): Promise<boolean>;
   findTopic(topicCode: string): Promise<KnowledgeTopicRecord | null>;
+  withScopeLocks<T>(scopeCodes: string[], operation: (repository: KnowledgeRepository) => Promise<T>): Promise<T>;
 }
 
 export interface KnowledgeService {
@@ -74,9 +75,13 @@ function toTopic(record: KnowledgeTopicRecord): KnowledgeTopic {
   return { code: record.topicCode, scopeCode: record.scopeCode, name: record.topicName, description: record.description };
 }
 
+function sortedScopeCodes(scopeCodes: string[]): string[] {
+  return [...new Set(scopeCodes)].sort((left, right) => left.localeCompare(right));
+}
+
 export function createKnowledgeService(repository: KnowledgeRepository): KnowledgeService {
-  async function assertScope(scopeCode: string): Promise<void> {
-    if (!await repository.findScope(scopeCode)) throw scopeNotFound();
+  async function assertScope(scopeCode: string, transaction: KnowledgeRepository): Promise<void> {
+    if (!await transaction.findScope(scopeCode)) throw scopeNotFound();
   }
 
   return {
@@ -107,14 +112,16 @@ export function createKnowledgeService(repository: KnowledgeRepository): Knowled
     },
 
     async deleteScope(scopeCode) {
-      if (!await repository.findScope(scopeCode)) throw scopeNotFound();
-      if ((await repository.listTopics(scopeCode)).length > 0) throw scopeInUse();
-      try {
-        if (!await repository.deleteScope(scopeCode)) throw scopeNotFound();
-      } catch (error) {
-        if (isPrismaError(error, 'P2025')) throw scopeNotFound();
-        throw error;
-      }
+      await repository.withScopeLocks([scopeCode], async (transaction) => {
+        await assertScope(scopeCode, transaction);
+        if ((await transaction.listTopics(scopeCode)).length > 0) throw scopeInUse();
+        try {
+          if (!await transaction.deleteScope(scopeCode)) throw scopeNotFound();
+        } catch (error) {
+          if (isPrismaError(error, 'P2025')) throw scopeNotFound();
+          throw error;
+        }
+      });
     },
 
     async listTopics(scopeCode) {
@@ -122,31 +129,40 @@ export function createKnowledgeService(repository: KnowledgeRepository): Knowled
     },
 
     async createTopic(input) {
-      await assertScope(input.scopeCode);
-      try {
-        return toTopic(await repository.createTopic({
-          topicCode: input.code, scopeCode: input.scopeCode, topicName: input.name, description: input.description,
-        }));
-      } catch (error) {
-        if (isPrismaError(error, 'P2002')) throw codeExists();
-        throw error;
-      }
+      return repository.withScopeLocks([input.scopeCode], async (transaction) => {
+        await assertScope(input.scopeCode, transaction);
+        try {
+          return toTopic(await transaction.createTopic({
+            topicCode: input.code, scopeCode: input.scopeCode, topicName: input.name, description: input.description,
+          }));
+        } catch (error) {
+          if (isPrismaError(error, 'P2002')) throw codeExists();
+          throw error;
+        }
+      });
     },
 
     async updateTopic(topicCode, input) {
       const existing = await repository.findTopic(topicCode);
       if (!existing) throw topicNotFound();
-      if (input.scopeCode) await assertScope(input.scopeCode);
-      try {
-        const result = await repository.updateTopic(topicCode, {
-          scopeCode: input.scopeCode, topicName: input.name, description: input.description,
-        });
-        if (!result) throw topicNotFound();
-        return toTopic(result);
-      } catch (error) {
-        if (isPrismaError(error, 'P2025')) throw topicNotFound();
-        throw error;
-      }
+      if (!existing.scopeCode) throw new AppError('KNOWLEDGE_SCOPE_REQUIRED', 'Knowledge topic must have a scope', 400);
+      const targetScopeCode = input.scopeCode ?? existing.scopeCode;
+
+      return repository.withScopeLocks(sortedScopeCodes([existing.scopeCode, targetScopeCode]), async (transaction) => {
+        const topic = await transaction.findTopic(topicCode);
+        if (!topic) throw topicNotFound();
+        await assertScope(targetScopeCode, transaction);
+        try {
+          const result = await transaction.updateTopic(topicCode, {
+            scopeCode: input.scopeCode, topicName: input.name, description: input.description,
+          });
+          if (!result) throw topicNotFound();
+          return toTopic(result);
+        } catch (error) {
+          if (isPrismaError(error, 'P2025')) throw topicNotFound();
+          throw error;
+        }
+      });
     },
 
     async deleteTopic(topicCode) {
@@ -163,26 +179,37 @@ export function createKnowledgeService(repository: KnowledgeRepository): Knowled
 async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepository) => Promise<T>): Promise<T> {
   const { getKnowledgePrisma } = await import('../../../lib/db/prisma-knowledge');
   const prisma = getKnowledgePrisma();
-  return operation({
-    listScopes: () => prisma.knowledgeScope.findMany({ orderBy: { sortOrder: 'asc' } }),
-    createScope: (input) => prisma.knowledgeScope.create({ data: input }),
-    updateScope: async (scopeCode, input) => {
-      try { return await prisma.knowledgeScope.update({ where: { scopeCode }, data: input }); } catch (error) { if (isPrismaError(error, 'P2025')) return null; throw error; }
-    },
-    deleteScope: async (scopeCode) => {
-      try { await prisma.knowledgeScope.delete({ where: { scopeCode } }); return true; } catch (error) { if (isPrismaError(error, 'P2025')) return false; throw error; }
-    },
-    findScope: (scopeCode) => prisma.knowledgeScope.findUnique({ where: { scopeCode } }),
-    listTopics: (scopeCode) => prisma.knowledgeTopic.findMany({ where: scopeCode ? { scopeCode } : undefined, orderBy: { sortOrder: 'asc' } }),
-    createTopic: (input) => prisma.knowledgeTopic.create({ data: input }),
-    updateTopic: async (topicCode, input) => {
-      try { return await prisma.knowledgeTopic.update({ where: { topicCode }, data: input }); } catch (error) { if (isPrismaError(error, 'P2025')) return null; throw error; }
-    },
-    deleteTopic: async (topicCode) => {
-      try { await prisma.knowledgeTopic.delete({ where: { topicCode } }); return true; } catch (error) { if (isPrismaError(error, 'P2025')) return false; throw error; }
-    },
-    findTopic: (topicCode) => prisma.knowledgeTopic.findUnique({ where: { topicCode } }),
-  });
+
+  function createPrismaRepository(client: typeof prisma): KnowledgeRepository {
+    return {
+      listScopes: () => client.knowledgeScope.findMany({ orderBy: { sortOrder: 'asc' } }),
+      createScope: (input) => client.knowledgeScope.create({ data: input }),
+      updateScope: async (scopeCode, input) => {
+        try { return await client.knowledgeScope.update({ where: { scopeCode }, data: input }); } catch (error) { if (isPrismaError(error, 'P2025')) return null; throw error; }
+      },
+      deleteScope: async (scopeCode) => {
+        try { await client.knowledgeScope.delete({ where: { scopeCode } }); return true; } catch (error) { if (isPrismaError(error, 'P2025')) return false; throw error; }
+      },
+      findScope: (scopeCode) => client.knowledgeScope.findUnique({ where: { scopeCode } }),
+      listTopics: (scopeCode) => client.knowledgeTopic.findMany({ where: scopeCode ? { scopeCode } : undefined, orderBy: { sortOrder: 'asc' } }),
+      createTopic: (input) => client.knowledgeTopic.create({ data: input }),
+      updateTopic: async (topicCode, input) => {
+        try { return await client.knowledgeTopic.update({ where: { topicCode }, data: input }); } catch (error) { if (isPrismaError(error, 'P2025')) return null; throw error; }
+      },
+      deleteTopic: async (topicCode) => {
+        try { await client.knowledgeTopic.delete({ where: { topicCode } }); return true; } catch (error) { if (isPrismaError(error, 'P2025')) return false; throw error; }
+      },
+      findTopic: (topicCode) => client.knowledgeTopic.findUnique({ where: { topicCode } }),
+      withScopeLocks: async (scopeCodes, lockedOperation) => client.$transaction(async (transaction) => {
+        for (const scopeCode of sortedScopeCodes(scopeCodes)) {
+          await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${scopeCode}))`;
+        }
+        return lockedOperation(createPrismaRepository(transaction as typeof prisma));
+      }),
+    };
+  }
+
+  return operation(createPrismaRepository(prisma));
 }
 
 export const knowledgeService: KnowledgeService = {
