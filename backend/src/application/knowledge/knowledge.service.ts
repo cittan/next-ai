@@ -33,6 +33,7 @@ export interface KnowledgeRepository {
   deleteTopic(topicCode: string): Promise<boolean>;
   findTopic(topicCode: string): Promise<KnowledgeTopicRecord | null>;
   withScopeLocks<T>(scopeCodes: string[], operation: (repository: KnowledgeRepository) => Promise<T>): Promise<T>;
+  withTopicLock<T>(topicCode: string, operation: (repository: KnowledgeRepository) => Promise<T>): Promise<T>;
 }
 
 export interface KnowledgeService {
@@ -76,6 +77,14 @@ function toTopic(record: KnowledgeTopicRecord): KnowledgeTopic {
 }
 
 const UNSCOPED_TOPICS_LOCK_KEY = '__unscoped_topics__';
+
+function scopeLockKey(scopeCode: string): string {
+  return `scope:${scopeCode}`;
+}
+
+function topicLockKey(topicCode: string): string {
+  return `topic:${topicCode}`;
+}
 
 function sortedScopeCodes(scopeCodes: string[]): string[] {
   return [...new Set(scopeCodes)].sort((left, right) => left.localeCompare(right));
@@ -136,7 +145,7 @@ export function createKnowledgeService(repository: KnowledgeRepository): Knowled
     },
 
     async createTopic(input) {
-      return repository.withScopeLocks([input.scopeCode], async (transaction) => {
+      return repository.withTopicLock(input.code, (topicTransaction) => topicTransaction.withScopeLocks([input.scopeCode], async (transaction) => {
         await assertScope(input.scopeCode, transaction);
         try {
           return toTopic(await transaction.createTopic({
@@ -146,45 +155,46 @@ export function createKnowledgeService(repository: KnowledgeRepository): Knowled
           if (isPrismaError(error, 'P2002')) throw codeExists();
           throw error;
         }
-      });
+      }));
     },
 
     async updateTopic(topicCode, input) {
-      const existing = await repository.findTopic(topicCode);
-      if (!existing) throw topicNotFound();
-      if (!existing.scopeCode) throw new AppError('KNOWLEDGE_SCOPE_REQUIRED', 'Knowledge topic must have a scope', 400);
-      const targetScopeCode = input.scopeCode ?? existing.scopeCode;
-
-      return repository.withScopeLocks(sortedScopeCodes([existing.scopeCode, targetScopeCode]), async (transaction) => {
-        const topic = await transaction.findTopic(topicCode);
+      return repository.withTopicLock(topicCode, async (topicTransaction) => {
+        const topic = await topicTransaction.findTopic(topicCode);
         if (!topic) throw topicNotFound();
-        await assertScope(targetScopeCode, transaction);
-        try {
-          const result = await transaction.updateTopic(topicCode, {
-            scopeCode: input.scopeCode, topicName: input.name, description: input.description,
-          });
-          if (!result) throw topicNotFound();
-          return toTopic(result);
-        } catch (error) {
-          if (isPrismaError(error, 'P2025')) throw topicNotFound();
-          throw error;
-        }
+        const currentScopeCode = topic.scopeCode || UNSCOPED_TOPICS_LOCK_KEY;
+        const targetScopeCode = input.scopeCode ?? currentScopeCode;
+
+        return topicTransaction.withScopeLocks(sortedScopeCodes([currentScopeCode, targetScopeCode]), async (transaction) => {
+          await assertScope(targetScopeCode, transaction);
+          try {
+            const result = await transaction.updateTopic(topicCode, {
+              scopeCode: input.scopeCode, topicName: input.name, description: input.description,
+            });
+            if (!result) throw topicNotFound();
+            return toTopic(result);
+          } catch (error) {
+            if (isPrismaError(error, 'P2025')) throw topicNotFound();
+            throw error;
+          }
+        });
       });
     },
 
     async deleteTopic(topicCode) {
-      const existing = await repository.findTopic(topicCode);
-      if (!existing) throw topicNotFound();
-      const lockKey = existing.scopeCode || UNSCOPED_TOPICS_LOCK_KEY;
+      await repository.withTopicLock(topicCode, async (topicTransaction) => {
+        const topic = await topicTransaction.findTopic(topicCode);
+        if (!topic) throw topicNotFound();
+        const currentScopeCode = topic.scopeCode || UNSCOPED_TOPICS_LOCK_KEY;
 
-      await repository.withScopeLocks([lockKey], async (transaction) => {
-        if (!await transaction.findTopic(topicCode)) throw topicNotFound();
-        try {
-          if (!await transaction.deleteTopic(topicCode)) throw topicNotFound();
-        } catch (error) {
-          if (isPrismaError(error, 'P2025')) throw topicNotFound();
-          throw error;
-        }
+        await topicTransaction.withScopeLocks([currentScopeCode], async (transaction) => {
+          try {
+            if (!await transaction.deleteTopic(topicCode)) throw topicNotFound();
+          } catch (error) {
+            if (isPrismaError(error, 'P2025')) throw topicNotFound();
+            throw error;
+          }
+        });
       });
     },
   };
@@ -194,7 +204,7 @@ async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepos
   const { getKnowledgePrisma } = await import('../../../lib/db/prisma-knowledge');
   const prisma = getKnowledgePrisma();
 
-  function createPrismaRepository(client: typeof prisma): KnowledgeRepository {
+  function createPrismaRepository(client: typeof prisma, inTransaction = false): KnowledgeRepository {
     return {
       listScopes: () => client.knowledgeScope.findMany({ orderBy: { sortOrder: 'asc' } }),
       createScope: (input) => client.knowledgeScope.create({ data: input }),
@@ -214,12 +224,28 @@ async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepos
         try { await client.knowledgeTopic.delete({ where: { topicCode } }); return true; } catch (error) { if (isPrismaError(error, 'P2025')) return false; throw error; }
       },
       findTopic: (topicCode) => client.knowledgeTopic.findUnique({ where: { topicCode } }),
-      withScopeLocks: async (scopeCodes, lockedOperation) => client.$transaction(async (transaction) => {
-        for (const scopeCode of sortedScopeCodes(scopeCodes)) {
-          await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${scopeCode}))`;
+      withScopeLocks: async (scopeCodes, lockedOperation) => {
+        if (inTransaction) {
+          for (const scopeCode of sortedScopeCodes(scopeCodes)) {
+            await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${scopeLockKey(scopeCode)}))`;
+          }
+          return lockedOperation(createPrismaRepository(client, true));
         }
-        return lockedOperation(createPrismaRepository(transaction as typeof prisma));
-      }),
+        return client.$transaction(async (transaction) => {
+          const transactionRepository = createPrismaRepository(transaction as typeof prisma, true);
+          return transactionRepository.withScopeLocks(scopeCodes, lockedOperation);
+        });
+      },
+      withTopicLock: async (topicCode, lockedOperation) => {
+        if (inTransaction) {
+          await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${topicLockKey(topicCode)}))`;
+          return lockedOperation(createPrismaRepository(client, true));
+        }
+        return client.$transaction(async (transaction) => {
+          const transactionRepository = createPrismaRepository(transaction as typeof prisma, true);
+          return transactionRepository.withTopicLock(topicCode, lockedOperation);
+        });
+      },
     };
   }
 
