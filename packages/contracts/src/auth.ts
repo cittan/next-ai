@@ -7,8 +7,9 @@ export const CredentialsSchema = z.object({
 export type Credentials = z.infer<typeof CredentialsSchema>;
 
 export const AuthUserSchema = z.object({
-  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
   username: z.string(),
+  role: z.string(),
 });
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 

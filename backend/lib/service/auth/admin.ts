@@ -7,7 +7,12 @@ import { JwtPayload, signToken } from "./jwt";
 
 const saltRounds = 10;
 
-export async function adminLogin(username: string, password: string) {
+export interface AuthResult {
+    token: string;
+    user: { userId: number; username: string; role: string };
+}
+
+export async function adminLogin(username: string, password: string): Promise<AuthResult | null> {
     const prisma = getBusinessPrisma();
     const count = await prisma.adminUser.count();
     if (count === 0) {
@@ -50,7 +55,7 @@ export async function adminLogin(username: string, password: string) {
     }
 }
 
-export async function adminRegister(username: string, password: string) {
+export async function adminRegister(username: string, password: string): Promise<AuthResult | null> {
     const prisma = getBusinessPrisma();
     const user = await prisma.adminUser.findUnique({
         where: {
@@ -67,6 +72,14 @@ export async function adminRegister(username: string, password: string) {
             passwordHash,
             role: 'admin'
         }
-    })
-    return result;
+    });
+    const userInfo = {
+        userId: result.id,
+        username: result.username,
+        role: result.role,
+    };
+    return {
+        token: signToken(userInfo),
+        user: userInfo,
+    };
 }
