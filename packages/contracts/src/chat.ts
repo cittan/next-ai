@@ -45,9 +45,14 @@ export type Exchange = z.infer<typeof ExchangeSchema>;
 
 export const MemorySummarySchema = z.object({
   conversationId: z.string(),
-  summary: z.string(),
   coveredExchangeId: z.number().int().nonnegative(),
   compressionCount: z.number().int().nonnegative(),
-  updatedAt: z.coerce.date().optional(),
+  conversationGoal: z.string(),
+  summary: z.string(),
+  stableFacts: z.array(z.string()),
+  pendingQuestions: z.array(z.string()),
+  retrievalHints: z.array(z.string()),
+  resolvedPoints: z.array(z.string()),
+  tokenUsed: z.number().int().nonnegative(),
 });
 export type MemorySummary = z.infer<typeof MemorySummarySchema>;

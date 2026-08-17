@@ -32,15 +32,19 @@ export class ConversationManager {
         }
         return {
             conversationId: row.conversationId, chatMode: row.chatMode, status: row.status as ChatSessionStatus, title: row.title ||
-                row.exchanges[0]?.question || '新对话', userId: row.userId ?? undefined, exchangeCount: row._count.exchanges, createTime: row.createTime, editTime: row.editTime
+                row.exchanges[0]?.question || '新对话', userId: row.userId ?? undefined, exchangeCount: row._count.exchanges,
+            createTime: row.createTime.toISOString(), editTime: row.editTime.toISOString()
         }
     }
 
     //分页按关键词查询
-    async listSessions(p: { keyword?: string; pageNo: number; pageSize: number }) {
-        const where: any = {};
+    async listSessions(p: { keyword?: string; pageNo: number; pageSize: number; userId?: number; includeAllUsers?: boolean }) {
+        const where: { title?: { contains: string }; userId?: number } = {};
         if (p.keyword) {
             where.title = { contains: p.keyword };
+        }
+        if (!p.includeAllUsers && p.userId !== undefined) {
+            where.userId = p.userId;
         }
         const [total, rows] = await Promise.all([
             this.prisma.conversationSession.count({ where }),
@@ -52,8 +56,9 @@ export class ConversationManager {
         return {
             sessions: rows.map(r => ({
                 conversationId: r.conversationId, chatMode: r.chatMode, status: r.status as ChatSessionStatus,
-                title: r.title || r.exchanges[0]?.question || '新对话', exchangeCount: r._count.exchanges, createTime: r.createTime, editTime: r.editTime
-            })), total
+                title: r.title || r.exchanges[0]?.question || '新对话', userId: r.userId ?? undefined,
+                exchangeCount: r._count.exchanges, createTime: r.createTime.toISOString(), editTime: r.editTime.toISOString()
+            })), total: Number(total)
         }
     }
 
@@ -140,11 +145,12 @@ export class ConversationManager {
             }
         });
         return rows.map(r => ({
+            conversationId,
             exchangeId: r.exchangeId,
             question: r.question,
             answer: r.answer ?? '',
             exchangeState: r.exchangeState,
-            createTime: r.createTime
+            createTime: r.createTime.toISOString()
         }))
     }
 }

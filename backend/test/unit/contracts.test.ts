@@ -3,6 +3,7 @@ import {
   ApiErrorEnvelopeSchema,
   ChatRequestSchema,
   ChatStreamEventSchema,
+  MemorySummarySchema,
   PaginationQuerySchema,
   apiRoutes,
 } from '@next-ai/contracts';
@@ -38,5 +39,11 @@ describe('shared contracts', () => {
     expect(ApiErrorEnvelopeSchema.parse({
       error: { code: 'BAD_REQUEST', message: 'invalid', details: null, requestId: 'req_test' },
     }).error.code).toBe('BAD_REQUEST');
+  });
+
+  it('requires the complete memory summary response', () => {
+    expect(() => MemorySummarySchema.parse({
+      conversationId: 'c1', summary: '', coveredExchangeId: 0, compressionCount: 0,
+    })).toThrow();
   });
 });

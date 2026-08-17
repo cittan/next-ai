@@ -1,5 +1,9 @@
 import { getBusinessPrisma } from "@/lib/db/prisma-business";
 
+function toStringArray(value: unknown): string[] {
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
 export class MemoryStore {
     private get prisma() {
         return getBusinessPrisma();
@@ -22,12 +26,12 @@ export class MemoryStore {
             conversationId: row.conversationId,
             coveredExchangeId: row.coveredExchangeId,
             compressionCount: row.compressionCount,
-            conversationGoal: row.conversationGoal ?? undefined,
-            summary: row.summary,
-            stableFacts: Array.isArray(row.stableFacts) ? row.stableFacts : [],
-            pendingQuestions: Array.isArray(row.pendingQuestions) ? row.pendingQuestions : [],
-            retrievalHints: Array.isArray(row.retrievalHints) ? row.retrievalHints : [],
-            resolvedPoints: Array.isArray(row.resolvedPoints) ? row.resolvedPoints : [],
+            conversationGoal: row.conversationGoal ?? '',
+            summary: row.summary ?? '',
+            stableFacts: toStringArray(row.stableFacts),
+            pendingQuestions: toStringArray(row.pendingQuestions),
+            retrievalHints: toStringArray(row.retrievalHints),
+            resolvedPoints: toStringArray(row.resolvedPoints),
             tokenUsed: row.tokenUsed ?? 0,
         }
     }
