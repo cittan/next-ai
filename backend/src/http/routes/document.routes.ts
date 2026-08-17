@@ -3,6 +3,7 @@ import { Router, type RequestHandler } from 'express';
 import multer from 'multer';
 import { documentQueryService, type DocumentQueryService } from '../../application/documents/document-query.service';
 import { documentUploadService, type DocumentUploadService } from '../../application/documents/document-upload.service';
+import { documentLifecycleService, type DocumentLifecycleService } from '../../application/documents/document-lifecycle.service';
 import { runtimeConfig } from '../../config/runtime';
 import { createDocumentController } from '../controllers/document.controller';
 import { AppError } from '../errors/app-error';
@@ -12,6 +13,7 @@ import { validate } from '../middleware/validate';
 export interface CreateDocumentRouterOptions {
   queryService?: DocumentQueryService;
   uploadService?: DocumentUploadService;
+  lifecycleService?: DocumentLifecycleService;
   maxUploadBytes?: number;
   requireAuth?: RequestHandler;
   requireAdmin?: RequestHandler;
@@ -19,7 +21,11 @@ export interface CreateDocumentRouterOptions {
 
 export function createDocumentRouter(options: CreateDocumentRouterOptions = {}): Router {
   const router = Router();
-  const controller = createDocumentController(options.queryService ?? documentQueryService, options.uploadService ?? documentUploadService);
+  const controller = createDocumentController(
+    options.queryService ?? documentQueryService,
+    options.uploadService ?? documentUploadService,
+    options.lifecycleService ?? documentLifecycleService,
+  );
   const maxUploadBytes = options.maxUploadBytes ?? runtimeConfig.maxUploadBytes;
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxUploadBytes } });
   const authenticate = options.requireAuth ?? requireAuth;
@@ -28,6 +34,8 @@ export function createDocumentRouter(options: CreateDocumentRouterOptions = {}):
   router.use('/api/manage/documents', authenticate, authorizeAdmin);
   router.get('/api/manage/documents', validate(DocumentListQuerySchema, 'query'), controller.list);
   router.get('/api/manage/documents/:documentId', validate(DocumentIdParamsSchema, 'params'), controller.get);
+  router.delete('/api/manage/documents/:documentId', validate(DocumentIdParamsSchema, 'params'), controller.remove);
+  router.post('/api/manage/documents/:documentId/index', validate(DocumentIdParamsSchema, 'params'), controller.buildIndex);
   router.post('/api/manage/documents', (req, res, next) => {
     upload.single('file')(req, res, (error) => {
       if (error) {

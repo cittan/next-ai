@@ -1,12 +1,15 @@
 import type { RequestHandler } from 'express';
 import type { DocumentQueryService } from '../../application/documents/document-query.service';
 import type { DocumentUploadService } from '../../application/documents/document-upload.service';
+import type { DocumentLifecycleService } from '../../application/documents/document-lifecycle.service';
 import { AppError } from '../errors/app-error';
 
-export function createDocumentController(queryService: DocumentQueryService, uploadService: DocumentUploadService): {
+export function createDocumentController(queryService: DocumentQueryService, uploadService: DocumentUploadService, lifecycleService: DocumentLifecycleService): {
   list: RequestHandler;
   get: RequestHandler;
   upload: RequestHandler;
+  remove: RequestHandler;
+  buildIndex: RequestHandler;
 } {
   return {
     list: async (req, res, next) => {
@@ -36,6 +39,24 @@ export function createDocumentController(queryService: DocumentQueryService, upl
           size: req.file.size,
           buffer: req.file.buffer,
         }));
+      } catch (error) {
+        next(error);
+      }
+    },
+    remove: async (req, res, next) => {
+      try {
+        const { documentId } = req.params as unknown as { documentId: number };
+        await lifecycleService.delete(documentId);
+        res.status(204).send();
+      } catch (error) {
+        next(error);
+      }
+    },
+    buildIndex: async (req, res, next) => {
+      try {
+        const { documentId } = req.params as unknown as { documentId: number };
+        const planId = typeof req.body?.planId === 'number' ? req.body.planId : undefined;
+        res.json(await lifecycleService.build(documentId, planId));
       } catch (error) {
         next(error);
       }
