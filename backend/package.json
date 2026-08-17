@@ -9,6 +9,8 @@
     "dev:express": "tsx watch src/server.ts",
     "build:express": "pnpm --filter @next-ai/contracts build && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "start:express": "node dist/src/server.js",
+    "dev:worker": "tsx watch src/workers/document.worker.ts",
+    "start:worker": "node dist/src/workers/document.worker.js",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.express.json",
     "vitest": "vitest"

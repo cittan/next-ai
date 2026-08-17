@@ -23,23 +23,23 @@ export class AsyncProcessor {
     const km = new KafkaManager();
     await km.ensureTopics([config.kafka.parseTopic, config.kafka.indexTopic]);
 
-    // 启动 4 个消费者（对应 4 个分区）
-    const CONSUMER_COUNT = 4;
-    for (let i = 0; i < CONSUMER_COUNT; i++) {
+    // 同类消费者共享 groupId，由 Kafka 分配分区。
+    const consumerCount = Number(process.env.KAFKA_CONSUMER_COUNT || 1);
+    for (let i = 0; i < consumerCount; i++) {
       await createConsumer(
-        `${config.kafka.groupId}-parse-${i}`,
+        `${config.kafka.groupId}-parse`,
         [config.kafka.parseTopic],
         this.handleParseRoute.bind(this),
       );
 
       await createConsumer(
-        `${config.kafka.groupId}-index-${i}`,
+        `${config.kafka.groupId}-index`,
         [config.kafka.indexTopic],
         this.handleIndexBuild.bind(this),
       );
     }
 
-    console.log(`[异步处理器] 已启动 ${CONSUMER_COUNT} 个消费者（解析 + 索引）`);
+    console.log(`[异步处理器] 已启动 ${consumerCount} 组解析/索引消费者`);
   }
 
   async stop(): Promise<void> {
