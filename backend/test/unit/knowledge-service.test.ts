@@ -33,6 +33,24 @@ describe('knowledge service', () => {
     })).resolves.toEqual({ code: 'hr', name: 'Human Resources', description: null });
   });
 
+  it('locks a scope before creating it', async () => {
+    const events: string[] = [];
+    const repository = createRepository({
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        events.push(`lock:${scopeCodes.join(',')}`);
+        return operation(repository);
+      }),
+      createScope: vi.fn(async () => {
+        events.push('create-scope');
+        return { scopeCode: 'hr', scopeName: 'Human Resources', description: null };
+      }),
+    });
+
+    await createKnowledgeService(repository).createScope({ code: 'hr', name: 'Human Resources' });
+
+    expect(events).toEqual(['lock:hr', 'create-scope']);
+  });
+
   it('translates a duplicate scope code into a conflict', async () => {
     const repository = createRepository({
       createScope: vi.fn().mockRejectedValue({ code: 'P2002' }),
@@ -40,6 +58,28 @@ describe('knowledge service', () => {
 
     await expect(createKnowledgeService(repository).createScope({ code: 'hr', name: 'Human Resources' }))
       .rejects.toMatchObject({ code: 'KNOWLEDGE_CODE_EXISTS', statusCode: 409 });
+  });
+
+  it('locks a scope before finding and updating it', async () => {
+    const events: string[] = [];
+    const repository = createRepository({
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        events.push(`lock:${scopeCodes.join(',')}`);
+        return operation(repository);
+      }),
+      findScope: vi.fn(async () => {
+        events.push('find-scope');
+        return { scopeCode: 'hr', scopeName: 'Human Resources', description: null };
+      }),
+      updateScope: vi.fn(async () => {
+        events.push('update-scope');
+        return { scopeCode: 'hr', scopeName: 'People Operations', description: null };
+      }),
+    });
+
+    await createKnowledgeService(repository).updateScope('hr', { name: 'People Operations' });
+
+    expect(events).toEqual(['lock:hr', 'find-scope', 'update-scope']);
   });
 
   it('returns not found when updating a missing scope', async () => {
@@ -161,6 +201,44 @@ describe('knowledge service', () => {
     await expect(createKnowledgeService(repository).deleteScope('hr'))
       .rejects.toMatchObject({ code: 'KNOWLEDGE_SCOPE_IN_USE', statusCode: 409 });
     expect(repository.deleteScope).not.toHaveBeenCalled();
+  });
+
+  it('locks a topic scope before re-reading and deleting the topic', async () => {
+    const events: string[] = [];
+    const repository = createRepository({
+      findTopic: vi.fn(async () => {
+        events.push('find-topic');
+        return { topicCode: 'payroll', scopeCode: 'hr', topicName: 'Payroll', description: null };
+      }),
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        events.push(`lock:${scopeCodes.join(',')}`);
+        return operation(repository);
+      }),
+      deleteTopic: vi.fn(async () => {
+        events.push('delete-topic');
+        return true;
+      }),
+    });
+
+    await createKnowledgeService(repository).deleteTopic('payroll');
+
+    expect(events).toEqual(['find-topic', 'lock:hr', 'find-topic', 'delete-topic']);
+  });
+
+  it('uses the unscoped sentinel lock key when deleting an unscoped topic', async () => {
+    const lockKeys: string[][] = [];
+    const repository = createRepository({
+      findTopic: vi.fn().mockResolvedValue({ topicCode: 'legacy', scopeCode: null, topicName: 'Legacy', description: null }),
+      withScopeLocks: vi.fn(async (scopeCodes, operation) => {
+        lockKeys.push(scopeCodes);
+        return operation(repository);
+      }),
+      deleteTopic: vi.fn().mockResolvedValue(true),
+    });
+
+    await createKnowledgeService(repository).deleteTopic('legacy');
+
+    expect(lockKeys).toEqual([['__unscoped_topics__']]);
   });
 
   it('returns not found when deleting a missing topic', async () => {
