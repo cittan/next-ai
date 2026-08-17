@@ -1,107 +1,79 @@
-import OpenAI from 'openai';
-import http from 'http';
-import https from 'https';
+import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { config } from '../config';
 
-//创建HTTP和HTTPS代理
-const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 30000 });
-const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 30000 });
-
-//创建OpenAI客户端
-let _client: OpenAI | null = null;
-export function getAiClient(): OpenAI {
-    if (!_client) {
-        //string的startsWith返回boolean值
-        const isHttps = config.ai.baseUrl.startsWith("https");
-        _client = new OpenAI({
-            apiKey: config.ai.apiKey,
-            baseURL: config.ai.baseUrl,
-            httpAgent: isHttps ? httpsAgent : httpAgent,
-            timeout: 60000,
-            maxRetries: 3
-        });
-    }
-    return _client;
-}
-
-//聊天的内容与角色
 export interface ChatMessage {
-    role: 'system' | 'assistant' | 'user';
-    content: string;
+  role: 'system' | 'assistant' | 'user';
+  content: string;
 }
 
-//获取聊天输出完成的内容
-export async function chatCompletion(
-    messages: ChatMessage[],
-    options: { model?: string, temperature?: number, maxTokens?: number } = {}
-): Promise<{
-    content: string;
-    usage: { promptTokens: number; completionTokens: number; totalTokens: number }
-}> {
-    const client = getAiClient();
-    const response = await client.chat.completions.create(
-        {
-            model: options.model || config.ai.chatModel,
-            messages: messages as any[],
-            temperature: options.temperature || config.ai.temperature,
-            max_tokens: options.maxTokens || config.ai.maxTokens,
-        }
-    );
-    const choice = response.choices[0];
-    return {
-        content: choice?.message?.content || "",
-        usage: {
-            promptTokens: response.usage?.prompt_tokens || 0,
-            completionTokens: response.usage?.completion_tokens || 0,
-            totalTokens: response.usage?.total_tokens || 0,
-        },
-    };
+type ModelOptions = { model?: string; temperature?: number; maxTokens?: number };
+
+function model(options: ModelOptions = {}) {
+  return new ChatOpenAI({
+    model: options.model || config.ai.chatModel,
+    temperature: options.temperature ?? config.ai.temperature,
+    maxTokens: options.maxTokens ?? config.ai.maxTokens,
+    maxRetries: 3,
+    timeout: 60_000,
+    configuration: { baseURL: config.ai.baseUrl, apiKey: config.ai.apiKey },
+  });
 }
 
-//流式聊天，Generator对象类似Iterator对象，用于生成一个可迭代序列，每个元素都是一个值。AsyncGenerator对象则用于异步生成一个可迭代序列，每个元素都是一个Promise对象
-//function* 表示这是一个生成器函数，返回一个迭代器对象Generator<>。async function*表示这是一个异步生成器函数，返回一个异步迭代器对象AsyncGenerator<>。
-export async function* streamChatCompletion(
-    messages: ChatMessage[],
-    options: { model?: string, temperature?: number, maxTokens?: number } = {}
-): AsyncGenerator<{ content: string, finishReason: string | null }> {
-    const client = getAiClient();
-    const stream = await client.chat.completions.create({
-        model: options.model || config.ai.chatModel,
-        messages: messages as any[],
-        temperature: options.temperature || config.ai.temperature,
-        max_tokens: options.maxTokens || config.ai.maxTokens,
-        stream: true,
-        stream_options: { include_usage: true }
-    })
-    //等待网络数据传输过来，每次传输一个chunk，就 yield 一个对象 for await
-    for await (const chunk of stream) {
-        //生成器中yield类似return，可以返回多个对象
-        yield { content: chunk.choices[0]?.delta?.content || '', finishReason: chunk.choices?.[0]?.finish_reason || null }
-    }
+function messages(input: ChatMessage[]): BaseMessage[] {
+  return input.map((message) => {
+    if (message.role === 'system') return new SystemMessage(message.content);
+    if (message.role === 'assistant') return new AIMessage(message.content);
+    return new HumanMessage(message.content);
+  });
 }
 
-//向量化一条文本
-export async function createEmbedding(text: string): Promise<number[]> {
-    const r = await getAiClient().embeddings.create({
-        model: config.ai.embeddingModel,
-        input: text
-    })
-    return r.data[0].embedding;
+function text(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content.map((part: any) => typeof part === 'string' ? part : part?.type === 'text' ? part.text : '').join('');
 }
 
-//批量向量化文本
-export async function createEmbeddings(texts: string[]): Promise<number[][]> {
-    const r = await getAiClient().embeddings.create({
-        model: config.ai.embeddingModel,
-        input: texts
-    })
-    return r.data.sort((a, b) => a.index - b.index).map(item => item.embedding);
+export async function chatCompletion(input: ChatMessage[], options: ModelOptions = {}) {
+  const response = await model(options).invoke(messages(input));
+  const usage = response.usage_metadata;
+  return {
+    content: text(response.content),
+    usage: {
+      promptTokens: usage?.input_tokens || 0,
+      completionTokens: usage?.output_tokens || 0,
+      totalTokens: usage?.total_tokens || 0,
+    },
+  };
 }
 
-//估算文本token数, 估算公式: 中文字符数 * 1.3 + 英文字符数 * 0.25
-export function estimateTokens(text: string): number {
-    const cn = (text.match(/[\u4e00-\u9fff]/g) || []).length;
-    return Math.ceil(cn * 1.3 + (text.length - cn) * 0.25);
+export async function* streamChatCompletion(input: ChatMessage[], options: ModelOptions = {}): AsyncGenerator<{ content: string; finishReason: string | null }> {
+  const stream = await model(options).stream(messages(input));
+  for await (const chunk of stream) {
+    yield { content: text(chunk.content), finishReason: chunk.response_metadata?.finish_reason as string || null };
+  }
 }
 
+let embeddings: OpenAIEmbeddings | undefined;
+function embeddingModel() {
+  embeddings ??= new OpenAIEmbeddings({
+    model: config.ai.embeddingModel,
+    maxRetries: 3,
+    timeout: 60_000,
+    configuration: { baseURL: config.ai.baseUrl, apiKey: config.ai.apiKey },
+  });
+  return embeddings;
+}
 
+export function createEmbedding(input: string): Promise<number[]> {
+  return embeddingModel().embedQuery(input);
+}
+
+export function createEmbeddings(input: string[]): Promise<number[][]> {
+  return embeddingModel().embedDocuments(input);
+}
+
+export function estimateTokens(value: string): number {
+  const chinese = (value.match(/[一-鿿]/g) || []).length;
+  return Math.ceil(chinese * 1.3 + (value.length - chinese) * 0.25);
+}
