@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const backendOrigin = process.env.BACKEND_ORIGIN || 'http://localhost:3000';
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: [],
@@ -8,15 +9,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*',
-      },
-      {
-        source: '/admin/:path*',
-        destination: 'http://localhost:3000/admin/:path*',
-      },
-      {
-        source: '/manage/:path*',
-        destination: 'http://localhost:3000/manage/:path*',
+        destination: `${backendOrigin}/api/:path*`,
       },
     ];
   },

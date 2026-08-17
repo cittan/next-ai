@@ -124,7 +124,7 @@ export default function AdminPage() {
         setLoading(true);
         try {
             const r = await adminApi.listDocument({ keyword, pageNo: 1, pageSize: 50 });
-            setDocs(r.documents);
+            setDocs(r.items);
         } catch (e: any) {
             alert(e.message);
         } finally {
@@ -162,9 +162,10 @@ export default function AdminPage() {
     };
 
     const handleBuildIndex = async (doc: any) => {
-        // 简单实现：直接调用构建索引API（如果有）
         try {
-            alert('索引构建功能待实现');
+            await adminApi.buildDocumentIndex(doc.id || doc.documentId);
+            alert('索引构建完成');
+            loadDocuments();
         } catch (err: any) {
             alert('索引构建失败: ' + (err.message || '未知错误'));
         }
@@ -458,6 +459,8 @@ export default function AdminPage() {
                             </tbody>
                         </table>
                     </div>
+                )}
+                    </>
                 )}
             </div>
         </main>

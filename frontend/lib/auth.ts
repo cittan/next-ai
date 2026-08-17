@@ -40,13 +40,13 @@ export async function verifyAuth() {
 
 export const authApi = {
     async login(username: string, password: string) {
-        const r = await api.post<{ token: string, username: string, role: string }>('/api/admin/auth/login', { username, password });
-        saveAuth(r.token, r.username);
+        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/login', { username, password });
+        saveAuth(r.token, r.user.username);
         return r;
     },
     async register(username: string, password: string) {
-        const r = await api.post<{ token: string, username: string, role: string }>('/api/admin/auth/register', { username, password });
-        saveAuth(r.token, r.username);
+        const r = await api.post<{ token: string, user: { username: string, role: string } }>('/api/admin/auth/register', { username, password });
+        saveAuth(r.token, r.user.username);
         return r;
     },
     isLoggedIn() {

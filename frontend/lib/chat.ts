@@ -1,87 +1,21 @@
-import { api } from "./client";
+import { api } from './client';
 
-export interface ChatSession {
-    conversationId: string;
-    chatMode: string;
-    status: number;
-    title: string;
-    selectedDocumentId?: string;
-    selectedDocumentName?: string;
-    createTime: string;
-    editTime: string;
-    exchangeCount: number;
-}
+export interface ChatSession { conversationId: string; chatMode: string; status: number; title?: string | null; createdAt?: string; updatedAt?: string; exchangeCount?: number; editTime?: string; }
+export interface SessionListResponse { items: ChatSession[]; page: number; pageSize: number; total: number; }
+export interface ExchangeRecord { conversationId: string; exchangeId: number; question: string; answer: string; state: number; createdAt: string; }
+export interface MemorySummary { conversationId: string; coveredExchangeId: number; coveredExchangeCount?: number; compressionCount: number; conversationGoal?: string; summary: string; summaryText?: string; editTime?: string; stableFacts: string[]; pendingQuestions: string[]; retrievalHints: string[]; resolvedPoints: string[]; tokenUsed: number; }
 
-export interface MemorySummary {
-    conversationId: string;
-    coveredExchangeId: number;
-    coveredExchangeCount: number;
-    compressionCount: number;
-    summaryText: string;
-    editTime: string;
-}
-
-export interface SessionListResponse {
-    pageNo: number;
-    pageSize: number;
-    totalSize: number;
-    totalPages: number;
-    sessions: ChatSession[];
-}
-
-export interface ExchangeRecord {
-    exchangeId: number;
-    question: string;
-    answer: string;
-    exchangeStatus: number;
-    createTime: string;
-}
-
+const session = (id: string) => `/api/chat/sessions/${encodeURIComponent(id)}`;
 
 export const chatApi = {
-    async listSessions(params?: {
-        keyword?: string;
-        chatMode?: string;
-        pageNo?: number;
-        pageSize?: number;
-    }): Promise<SessionListResponse> {
-        const searchParams = new URLSearchParams();
-        if (params?.keyword) {
-            searchParams.append('keyword', params.keyword);
-        }
-        if (params?.chatMode) {
-            searchParams.append('chatMode', params.chatMode);
-        }
-        if (params?.pageNo) {
-            searchParams.append('pageNo', params.pageNo.toString());
-        }
-        if (params?.pageSize) {
-            searchParams.append('pageSize', params.pageSize.toString());
-        }
-        const query = searchParams.toString();
-        return api.get<SessionListResponse>(`/api/chat/session/list?${query ? `${query}` : ''}`);
-    },
-    async renameSession(conversationId: string, title: string): Promise<any> {
-        return api.post(`/api/chat/session/rename?conversationId=${conversationId}&title=${encodeURIComponent(title)}`);
-    },
-    async deleteSession(conversationId: string): Promise<any> {
-        return api.post(`/api/chat/session/delete?conversationId=${conversationId}`);
-    },
-    async resetSession(conversationId: string): Promise<any> {
-        return api.post(`/api/chat/session/reset?conversationId=${conversationId}`);
-    },
-    //下方暂时为测试用,后续需要根据需求调整
-    async getSessionSummary(conversationId: string): Promise<MemorySummary> {
-        return api.get<MemorySummary>(`/api/chat/session/summary?conversationId=${conversationId}`);
-    },
-
-    async getExchanges(conversationId: string, limit?: number,): Promise<{ conversationId: string; exchanges: ExchangeRecord[] }> {
-        const params = new URLSearchParams({ conversationId });
-        if(limit) {
-            params.set('limit', String(limit));
-        }
-        return api.get(`/api/chat/session/exchanges?${params.toString()}`)
-    }
-
-}
-
+  listSessions(params: { keyword?: string; page?: number; pageSize?: number } = {}) {
+    const query = new URLSearchParams({ page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 20) });
+    if (params.keyword) query.set('keyword', params.keyword);
+    return api.get<SessionListResponse>(`/api/chat/sessions?${query}`);
+  },
+  renameSession: (id: string, title: string) => api.patch(session(id), { title }),
+  deleteSession: (id: string) => api.delete<void>(session(id)),
+  resetSession: (id: string) => api.post<void>(`${session(id)}/reset`),
+  getSessionSummary: (id: string) => api.get<MemorySummary>(`${session(id)}/summary`),
+  getExchanges: (id: string, limit = 50) => api.get<{ conversationId: string; items: ExchangeRecord[] }>(`${session(id)}/exchanges?limit=${limit}`),
+};

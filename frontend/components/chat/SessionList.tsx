@@ -245,7 +245,7 @@ export default function SessionList({ sessions, activeConversationId, onSelectSe
                                                     )}
                                                     <p className={`text-sm truncate flex-1 ${isActive ? 'text-primary-800 font-medium' : 'text-slate-700'}`}>{s.title || s.conversationId.slice(0, 8)}</p>
                                                 </div>
-                                                <p className="text-xs text-slate-400 mt-1 ml-3.5">{s.exchangeCount ?? 0} 轮 · {formatTime(s.editTime)}</p>
+                                                <p className="text-xs text-slate-400 mt-1 ml-3.5">{s.exchangeCount ?? 0} 轮 · {formatTime(s.editTime || s.updatedAt || '')}</p>
                                             </>
                                         )}
                                         {hoveredId === s.conversationId && editingId !== s.conversationId && (
@@ -344,16 +344,16 @@ export default function SessionList({ sessions, activeConversationId, onSelectSe
                                     <div className="flex gap-4 text-xs text-slate-400">
                                         <span className="flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-                                            覆盖 {summaryModal.data.coveredExchangeCount} 轮对话
+                                            覆盖 {summaryModal.data.coveredExchangeCount ?? summaryModal.data.coveredExchangeId} 轮对话
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                                             压缩 {summaryModal.data.compressionCount} 次
                                         </span>
-                                        <span>{formatTime(summaryModal.data.editTime)}</span>
+                                        {summaryModal.data.editTime && <span>{formatTime(summaryModal.data.editTime)}</span>}
                                     </div>
                                     <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 whitespace-pre-wrap leading-relaxed border border-white/20">
-                                        {summaryModal.data.summaryText || '(暂无摘要内容)'}
+                                        {summaryModal.data.summaryText || summaryModal.data.summary || '(暂无摘要内容)'}
                                     </div>
                                 </div>
                             ) : (

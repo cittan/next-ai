@@ -26,7 +26,7 @@ export default function Home() {
         setLoading(true);
         try {
             const res = await chatApi.listSessions();
-            setSessions(res.sessions);
+            setSessions(res.items);
         } catch (e: any) {
             console.error(e);
         } finally {
@@ -52,7 +52,7 @@ export default function Home() {
         setError('');
         try {
             const r = await chatApi.getExchanges(id);
-            const msgs = r.exchanges.flatMap((ex: any) => [
+            const msgs = r.items.flatMap((ex: any) => [
                 { role: 'user' as const, content: ex.question },
                 { role: 'assistant' as const, content: ex.answer || '' },
             ]);
@@ -88,6 +88,7 @@ export default function Home() {
             // 读取 SSE 流
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
+            let buffer = '';
             let assistantMsg = '';           // AI 回复内容（逐步累积）
             let newConversationId = activeConversationId;  // 新会话ID（首次响应返回）
 
@@ -96,12 +97,14 @@ export default function Home() {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const text = decoder.decode(value, { stream: true });
-                    const lines = text.split('\n');
+                    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+                    const frames = buffer.split('\n\n');
+                    buffer = frames.pop() || '';
 
-                    // 解析 SSE 数据
-                    for (const line of lines) {
-                        if (!line.startsWith('data: ')) continue;
+                    // 只解析完整的 SSE frame，保留跨 chunk 的尾部。
+                    for (const frame of frames) {
+                        const line = frame.split('\n').find((item) => item.startsWith('data: '));
+                        if (!line) continue;
                         const data = line.slice(6).trim();
                         if (data === '[DONE]') continue;
 
@@ -115,8 +118,9 @@ export default function Home() {
                             }
 
                             // 累积 AI 回复内容
-                            if (parsed.content) {
-                                assistantMsg += parsed.content;
+                            const token = parsed.token || parsed.content;
+                            if (token) {
+                                assistantMsg += token;
                                 // 更新消息列表（替换最后一条 assistant 消息或新增）
                                 setMessages((prev) => {
                                     // 检查是否最后一条是 assistant 消息，如果是表示ai正在回复，把添加的string替换掉最后一条assistant消息

@@ -1,31 +1,21 @@
+async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
 
-//泛型为通用，用于返回任意类型的响应，避免使用any
-async function request<T>(
-    url: string,
-    options: { method?: string; body?: any; headers?: Record<string, string> } = {},
-): Promise<T> {
-    const { method = "GET", body, headers } = options;
-    const header: Record<string, string> = { ...headers };
-    if(body) {
-        header["Content-Type"] = "application/json";
-    }
-    //检测当前是否是浏览器环境，如果是浏览器环境，才添加Authorization头
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
-    if(token) {
-        header["Authorization"] = `Bearer ${token}`;
-    }
-    const res = await fetch(url, {method, body: body ? JSON.stringify(body) : undefined, headers: header});
-    if(!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `HTTP ${res.status}`); 
-    }
-    //json方法返回一个Promise
-    return res.json();
+  const response = await fetch(url, { ...options, headers });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error?.message || body?.error || `HTTP ${response.status}`);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json();
 }
 
-//做参数转发，其中是两个key，值为箭头函数，不是类型定义
 export const api = {
-    get: <T>(url: string, config: { headers?: Record<string, string> } = {}) => request<T>(url, { method: "GET", ...config }),
-    post: <T>(url: string, body?: any, config: { headers?: Record<string, string> } = {}) => request<T>(url, { method: "POST", body: body, ...config }),
-}
-
+  get: <T>(url: string, options: RequestInit = {}) => request<T>(url, { ...options, method: 'GET' }),
+  post: <T>(url: string, body?: unknown, options: RequestInit = {}) => request<T>(url, { ...options, method: 'POST', body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body) }),
+  patch: <T>(url: string, body: unknown) => request<T>(url, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
+};
