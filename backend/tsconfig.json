@@ -2,40 +2,21 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@lib/*": ["./lib/*"],
-      "@app/*": ["./app/*"]
+      "@lib/*": ["./lib/*"]
     },
     "types": ["node"],
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      { "name": "next" }
-    ],
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "allowJs": true,
-    "isolatedModules": true
+    "noEmit": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
+  "include": ["src/**/*.ts", "lib/**/*.ts", "test/**/*.ts", "prisma*.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
