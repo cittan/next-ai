@@ -125,6 +125,7 @@ export async function sendMessage(
   message: { key: string; value: string },
 ): Promise<void> {
   const m = getManager();
+  //todo 这里的并发
   await m.connect();
   await m.send(topic, message.key, JSON.parse(message.value));
 }

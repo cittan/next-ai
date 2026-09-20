@@ -27,16 +27,18 @@ export function createDocumentRouter(options: CreateDocumentRouterOptions = {}):
     options.lifecycleService ?? documentLifecycleService,
   );
   const maxUploadBytes = options.maxUploadBytes ?? runtimeConfig.maxUploadBytes;
+  //multer 省去磁盘IO，保存在内存中
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxUploadBytes } });
   const authenticate = options.requireAuth ?? requireAuth;
   const authorizeAdmin = options.requireAdmin ?? requireAdmin;
-
+  
   router.use('/api/manage/documents', authenticate, authorizeAdmin);
   router.get('/api/manage/documents', validate(DocumentListQuerySchema, 'query'), controller.list);
   router.get('/api/manage/documents/:documentId', validate(DocumentIdParamsSchema, 'params'), controller.get);
   router.delete('/api/manage/documents/:documentId', validate(DocumentIdParamsSchema, 'params'), controller.remove);
   router.post('/api/manage/documents/:documentId/index', validate(DocumentIdParamsSchema, 'params'), controller.buildIndex);
   router.post('/api/manage/documents', (req, res, next) => {
+    //返回一个 Multer 内部的处理函数。这里手动调用它，并传入 req, res，以及一个回调函数 (error) => {...}。
     upload.single('file')(req, res, (error) => {
       if (error) {
         next(new AppError('BAD_REQUEST', error.code === 'LIMIT_FILE_SIZE' ? 'Uploaded file exceeds the size limit' : 'Invalid multipart upload', 400));

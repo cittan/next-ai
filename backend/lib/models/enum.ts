@@ -20,6 +20,7 @@ export enum ExchangeState {
 export enum ExecutionMode {
     RETRIEVAL = 'RETRIEVAL', //检索模式 ，仅检索向量数据库
     REACT_AGENT = 'REACT_AGENT', //react模式
+    ROUTED_AGENT = 'ROUTED_AGENT', //路由模式，多子图DAG
     GRAPH_ONLY = 'GRAPH_ONLY',//仅图模式，仅查询图数据库
     GRAPH_THEN_EVIFENCE = 'GRAPH_THEN_EVIFENCE',//图后证据模式，先查图数据库，再用检索内容补充
     CLARIFICATION = 'CLARIFICATION',//澄清模式，追问

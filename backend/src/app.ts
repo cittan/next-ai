@@ -14,6 +14,7 @@ export interface CreateAppOptions {
 export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
 
+  //use 匹配所有http请求
   app.use(requestId);
   app.use(cors({ origin: runtimeConfig.corsOrigin }));
   app.use(express.json({ limit: '1mb' }));

@@ -18,6 +18,8 @@ export interface AgentStateShape {
   finishNote: string;
   toolTraces: unknown[];
   errorMessage: string;
+  /** 路由意图：body_analysis/nutrition_query/exercise_query/workout_plan/meal_plan/knowledge_qa/general_chat */
+  routeIntent: string;
 }
 
 /**
@@ -74,4 +76,7 @@ export const AgentState = Annotation.Root({
 
   /** 执行失败时的错误信息 */
   errorMessage: Annotation<string>,
+
+  /** 路由意图 */
+  routeIntent: Annotation<string>,
 }) as any;

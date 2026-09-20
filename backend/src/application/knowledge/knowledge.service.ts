@@ -51,6 +51,31 @@ function isPrismaError(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
+const KNOWLEDGE_TRANSACTION_TIMEOUT_MS = 8000;
+
+function catalogBusy(): AppError {
+  return new AppError('KNOWLEDGE_BUSY', 'Knowledge catalog is busy, retry later', 503);
+}
+
+function collectErrorCodes(error: unknown, depth = 0): string[] {
+  if (depth > 4 || typeof error !== 'object' || error === null) return [];
+  const candidate = error as { code?: unknown; meta?: { code?: unknown }; cause?: unknown };
+  const codes: string[] = [];
+  if (typeof candidate.code === 'string') codes.push(candidate.code);
+  if (typeof candidate.meta?.code === 'string') codes.push(candidate.meta.code);
+  if (candidate.cause) codes.push(...collectErrorCodes(candidate.cause, depth + 1));
+  return codes;
+}
+
+export function isKnowledgeLockTimeoutError(error: unknown): boolean {
+  const codes = collectErrorCodes(error);
+  if (codes.some((code) => code === '55P03' || code === 'P2028')) return true;
+  const message = typeof error === 'object' && error !== null && 'message' in error
+    ? String((error as { message: unknown }).message)
+    : '';
+  return /lock timeout|canceling statement due to lock timeout/i.test(message);
+}
+
 function scopeNotFound(): AppError {
   return new AppError('KNOWLEDGE_SCOPE_NOT_FOUND', 'Knowledge scope not found', 404);
 }
@@ -204,6 +229,19 @@ async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepos
   const { getKnowledgePrisma } = await import('../../../lib/db/prisma-knowledge');
   const prisma = getKnowledgePrisma();
 
+  async function runLockedTransaction<T>(operation: (transactionClient: typeof prisma) => Promise<T>): Promise<T> {
+    try {
+      return await prisma.$transaction(async (transaction) => {
+        const transactionClient = transaction as typeof prisma;
+        await transactionClient.$executeRaw`SET LOCAL lock_timeout = '3s'`;
+        return operation(transactionClient);
+      }, { timeout: KNOWLEDGE_TRANSACTION_TIMEOUT_MS });
+    } catch (error) {
+      if (isKnowledgeLockTimeoutError(error)) throw catalogBusy();
+      throw error;
+    }
+  }
+
   function createPrismaRepository(client: typeof prisma, inTransaction = false): KnowledgeRepository {
     return {
       listScopes: () => client.knowledgeScope.findMany({ orderBy: { sortOrder: 'asc' } }),
@@ -231,8 +269,8 @@ async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepos
           }
           return lockedOperation(createPrismaRepository(client, true));
         }
-        return client.$transaction(async (transaction) => {
-          const transactionRepository = createPrismaRepository(transaction as typeof prisma, true);
+        return runLockedTransaction(async (transaction) => {
+          const transactionRepository = createPrismaRepository(transaction, true);
           return transactionRepository.withScopeLocks(scopeCodes, lockedOperation);
         });
       },
@@ -241,8 +279,8 @@ async function withKnowledgeRepository<T>(operation: (repository: KnowledgeRepos
           await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${topicLockKey(topicCode)}))`;
           return lockedOperation(createPrismaRepository(client, true));
         }
-        return client.$transaction(async (transaction) => {
-          const transactionRepository = createPrismaRepository(transaction as typeof prisma, true);
+        return runLockedTransaction(async (transaction) => {
+          const transactionRepository = createPrismaRepository(transaction, true);
           return transactionRepository.withTopicLock(topicCode, lockedOperation);
         });
       },

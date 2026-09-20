@@ -8,7 +8,7 @@ export interface UploadInput {
   size: number;
   buffer: Buffer;
 }
-
+//定义好相关的方法，作为入参依赖注入函数，函数只能调用当前interface中的方法
 export interface DocumentUploadDependencies {
   maxUploadBytes: number;
   uploadFile(buffer: Buffer, fileName: string, mimeType: string): Promise<string>;
@@ -42,6 +42,7 @@ function validateUpload(input: UploadInput, maxUploadBytes: number): number {
   }
 }
 
+//工厂函数，返回一个{upload: async function ()} 语法糖简写为async upload(){} ,根据该工厂函数创建出对象之后，调用其中upload方法即可上传文件
 export function createDocumentUploadService(dependencies: DocumentUploadDependencies): DocumentUploadService {
   const logger = dependencies.logger ?? console;
 

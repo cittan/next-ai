@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createKnowledgeService, type KnowledgeRepository } from '../../src/application/knowledge/knowledge.service';
+import { createKnowledgeService, isKnowledgeLockTimeoutError, type KnowledgeRepository } from '../../src/application/knowledge/knowledge.service';
 
 const hrScope = { scopeCode: 'hr', scopeName: 'Human Resources', description: null };
 const payrollTopic = { topicCode: 'payroll', scopeCode: 'hr', topicName: 'Payroll', description: null };
@@ -24,6 +24,17 @@ function createRepository(overrides: Partial<KnowledgeRepository> = {}): Knowled
   if (!overrides.withTopicLock) repository.withTopicLock = vi.fn((_topicCode, operation) => operation(repository));
   return repository;
 }
+
+describe('knowledge lock timeout mapping', () => {
+  it('recognizes a postgres lock timeout and a prisma transaction timeout', () => {
+    expect(isKnowledgeLockTimeoutError({ code: '55P03' })).toBe(true);
+    expect(isKnowledgeLockTimeoutError({ code: 'P2028' })).toBe(true);
+    expect(isKnowledgeLockTimeoutError({ meta: { code: '55P03' } })).toBe(true);
+    expect(isKnowledgeLockTimeoutError({ cause: { code: '55P03' } })).toBe(true);
+    expect(isKnowledgeLockTimeoutError({ message: 'canceling statement due to lock timeout' })).toBe(true);
+    expect(isKnowledgeLockTimeoutError({ code: 'P2002' })).toBe(false);
+  });
+});
 
 describe('knowledge service', () => {
   it('creates and normalizes a scope', async () => {

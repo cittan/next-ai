@@ -45,7 +45,7 @@ export async function runChat(input: ChatRequest, callbacks: ChatCallbacks, sign
         }
       }
     } else {
-      const rag = await retrieve(plan.rewrittenQuestion);
+     const rag = await retrieve(plan.rewrittenQuestion);
       const messages: ChatMessage[] = [
         { role: 'system', content: `你是Super Agent智能助手。${plan.longTermSummary ? `\n对话历史摘要: ${plan.longTermSummary}` : ''}` },
         { role: 'user', content: rag.results.length ? buildRagPrompt(input.question, rag.evidenceText) : input.question },
