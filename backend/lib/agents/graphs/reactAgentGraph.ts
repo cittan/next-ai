@@ -8,11 +8,13 @@ import { bmiCalculatorTool } from '../tools/bmiCalculatorTool';
 import { nutritionLookupTool } from '../tools/nutritionLookupTool';
 import { exerciseDBTool } from '../tools/exerciseDBTool';
 import { workoutPlanTool } from '../tools/workoutPlanTool';
+import { mealPlanTool } from '../tools/mealPlanTool';
+import { knowledgeBaseTool } from '../tools/knowledgeBaseTool';
 
 const MAX_TOOL_CALLS = 10;
 
 export function createReactGraph() {
-    const allTools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool];
+    const allTools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool, mealPlanTool, knowledgeBaseTool];
     const toolNode = createToolNode(allTools, MAX_TOOL_CALLS);
 
     return new StateGraph(AgentState)

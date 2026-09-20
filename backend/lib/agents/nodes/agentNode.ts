@@ -4,10 +4,12 @@ import { bmiCalculatorTool } from "../tools/bmiCalculatorTool";
 import { nutritionLookupTool } from "../tools/nutritionLookupTool";
 import { exerciseDBTool } from "../tools/exerciseDBTool";
 import { workoutPlanTool } from "../tools/workoutPlanTool";
+import { mealPlanTool } from "../tools/mealPlanTool";
+import { knowledgeBaseTool } from "../tools/knowledgeBaseTool";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { AgentStateShape } from "../state";
 
-const tools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool];
+const tools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool, mealPlanTool, knowledgeBaseTool];
 const model = getChatModel().bindTools(tools);
 
 const MAX_LLM_CALLS = 8;
@@ -22,6 +24,11 @@ export async function agentNode(
 2. 查询食物营养成分（热量、蛋白质、脂肪、碳水）
 3. 搜索最新的健身资讯和科学研究
 4. 根据用户目标（减脂/增肌/维持）给出饮食和训练建议
+5. 查询运动动作库（目标肌群、器械、难度筛选）
+6. 生成周训练计划和每日饮食计划
+7. 检索健身知识库（训练原理、营养学、运动科学）
+
+使用工具时注意：先了解用户的基本信息和目标，再给出个性化建议。如果用户信息不足，请主动追问。
 
 当前日期:${new Date().toISOString().slice(0, 10)}。${state.longTermSummary ? `历史摘要:${state.longTermSummary}` : ''}`,
         ),
