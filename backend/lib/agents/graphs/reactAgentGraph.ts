@@ -6,11 +6,13 @@ import { routeAfterAgent } from '../nodes/router';
 import { tavilySearchTool } from '../tools/searchTools';
 import { bmiCalculatorTool } from '../tools/bmiCalculatorTool';
 import { nutritionLookupTool } from '../tools/nutritionLookupTool';
+import { exerciseDBTool } from '../tools/exerciseDBTool';
+import { workoutPlanTool } from '../tools/workoutPlanTool';
 
 const MAX_TOOL_CALLS = 10;
 
 export function createReactGraph() {
-    const allTools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool];
+    const allTools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool];
     const toolNode = createToolNode(allTools, MAX_TOOL_CALLS);
 
     return new StateGraph(AgentState)

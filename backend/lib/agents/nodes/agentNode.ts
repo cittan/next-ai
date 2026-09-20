@@ -2,10 +2,12 @@ import { getChatModel } from "@/lib/ai/chatModel";
 import { tavilySearchTool } from "../tools/searchTools";
 import { bmiCalculatorTool } from "../tools/bmiCalculatorTool";
 import { nutritionLookupTool } from "../tools/nutritionLookupTool";
+import { exerciseDBTool } from "../tools/exerciseDBTool";
+import { workoutPlanTool } from "../tools/workoutPlanTool";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { AgentStateShape } from "../state";
 
-const tools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool];
+const tools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool, exerciseDBTool, workoutPlanTool];
 const model = getChatModel().bindTools(tools);
 
 const MAX_LLM_CALLS = 8;
