@@ -4,11 +4,14 @@ import { agentNode } from '../nodes/agentNode';
 import { createToolNode } from '../nodes/toolNode';
 import { routeAfterAgent } from '../nodes/router';
 import { tavilySearchTool } from '../tools/searchTools';
+import { bmiCalculatorTool } from '../tools/bmiCalculatorTool';
+import { nutritionLookupTool } from '../tools/nutritionLookupTool';
 
 const MAX_TOOL_CALLS = 10;
 
 export function createReactGraph() {
-    const toolNode = createToolNode([tavilySearchTool], MAX_TOOL_CALLS);
+    const allTools = [tavilySearchTool, bmiCalculatorTool, nutritionLookupTool];
+    const toolNode = createToolNode(allTools, MAX_TOOL_CALLS);
 
     return new StateGraph(AgentState)
         .addNode('agent', agentNode)
